@@ -18,8 +18,15 @@ public class Client {
 
     private static final Log LOG = LogFactory.getLog(Client.class);
 
+    // Configuration
     private Configuration conf;
     private YarnClient yarnClient;
+
+    // Application master jar file
+    private String appMasterJar = "";
+
+    // Debug flag
+    boolean debugFlag = false;
 
     // Command line options
     private Options opts;
@@ -57,8 +64,9 @@ public class Client {
         yarnClient = YarnClient.createYarnClient();
         yarnClient.init(conf);
         opts = new Options();
-
-        // TODO: add options
+        opts.addOption("jar", true, "Jar file containing the application master");
+        opts.addOption("debug", false, "Dump out debug information");
+        opts.addOption("help", false, "Print usage");
     }
 
     public boolean init(String[] args) throws ParseException {
@@ -73,17 +81,48 @@ public class Client {
             return false;
         }
 
-        // TODO: use options
+        if (cliParser.hasOption("debug")) {
+            debugFlag = true;
+
+        }
+
+        if (!cliParser.hasOption("jar")) {
+            throw new IllegalArgumentException("No jar file specified for application master");
+        }
+
+        appMasterJar = cliParser.getOptionValue("jar");
 
         return true;
     }
 
     public boolean run() throws IOException, YarnException {
+        LOG.info("Running Client");
         yarnClient.start();
+
+        // Get a new application id
         YarnClientApplication app = yarnClient.createApplication();
         GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
 
-        // TODO: a generic app submit, inspiration from YARN book (code!), simple-yarn-app, DistributedShell
+        // set the application submission context
+        ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
+        ApplicationId appId = appContext.getApplicationId();
+
+        // TODO: Investigate what AppContext setters that is needed
+
+        /*
+        appContext.setKeepContainersAcrossApplicationAttempts(keepContainers);
+        appContext.setApplicationName(appName);
+        appContext.setNodeLabelExpression(nodeLabelExpression);
+        appContext.setResource(capability);
+        appContext.setAMContainerSpec(amContainer);
+        appContext.setPriority(pri);
+        appContext.setQueue(amQueue);
+        */
+
+        LOG.info("Submitting application to ASM");
+        yarnClient.submitApplication(appContext);
+
+        // TODO: Add monitoring
 
         return true;
     }
