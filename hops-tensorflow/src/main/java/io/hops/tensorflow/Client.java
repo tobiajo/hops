@@ -1,133 +1,99 @@
 package io.hops.tensorflow;
 
-import org.apache.commons.cli.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.Records;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import static io.hops.tensorflow.ClientConf.*;
 
 public class Client {
 
     private static final Log LOG = LogFactory.getLog(Client.class);
 
-    // Configuration
-    private Configuration conf;
-    private YarnClient yarnClient;
-
-    // Application master jar file
-    private String appMasterJar = "";
-
-    // Debug flag
-    boolean debugFlag = false;
-
-    // Command line options
-    private Options opts;
+    private ClientConf clientConf;
+    private Configuration yarnConf;
 
     public static void main(String[] args) {
-        boolean result = false;
         try {
-            Client client = new Client();
-            LOG.info("Initializing Client");
-            try {
-                boolean doRun = client.init(args);
-                if (!doRun) {
-                    System.exit(0);
-                }
-            } catch (IllegalArgumentException e) {
-                System.err.println(e.getLocalizedMessage());
-                client.printUsage();
-                System.exit(-1);
-            }
-            result = client.run();
-        } catch (Throwable t) {
-            LOG.fatal("Error running Client", t);
-            System.exit(1);
+            new Client(new ClientConf(args), new YarnConfiguration()).run();
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
-        if (result) {
-            LOG.info("Application completed successfully");
-            System.exit(0);
-        }
-        LOG.error("Application failed to complete successfully");
-        System.exit(2);
     }
 
-    public Client() throws Exception {
-        this.conf = new YarnConfiguration();
-        yarnClient = YarnClient.createYarnClient();
-        yarnClient.init(conf);
-        opts = new Options();
-        opts.addOption("jar", true, "Jar file containing the application master");
-        opts.addOption("debug", false, "Dump out debug information");
-        opts.addOption("help", false, "Print usage");
+    public Client(ClientConf clientConf, Configuration yarnConf) {
+        this.clientConf = clientConf;
+        this.yarnConf = yarnConf;
     }
 
-    public boolean init(String[] args) throws ParseException {
-        CommandLine cliParser = new GnuParser().parse(opts, args);
-
-        if (args.length == 0) {
-            throw new IllegalArgumentException("No args specified for client to initialize");
-        }
-
-        if (cliParser.hasOption("help")) {
-            printUsage();
-            return false;
-        }
-
-        if (cliParser.hasOption("debug")) {
-            debugFlag = true;
-
-        }
-
-        if (!cliParser.hasOption("jar")) {
-            throw new IllegalArgumentException("No jar file specified for application master");
-        }
-
-        appMasterJar = cliParser.getOptionValue("jar");
-
-        return true;
+    public void run() throws IOException, YarnException {
+        monitorApplication(submitApplication());
     }
 
-    public boolean run() throws IOException, YarnException {
-        LOG.info("Running Client");
+    protected ApplicationId submitApplication() throws IOException, YarnException {
+        YarnClient yarnClient = YarnClient.createYarnClient();
+        yarnClient.init(yarnConf);
         yarnClient.start();
 
         // Get a new application id
-        YarnClientApplication app = yarnClient.createApplication();
-        GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
+        YarnClientApplication newApp = yarnClient.createApplication();
+        GetNewApplicationResponse newAppResponse = newApp.getNewApplicationResponse();
 
-        // set the application submission context
-        ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
-        ApplicationId appId = appContext.getApplicationId();
+        // Set up contexts
+        ContainerLaunchContext containerContext = createContainerLaunchContext(newAppResponse);
+        ApplicationSubmissionContext appContext = createApplicationSubmissionContext(newApp, containerContext);
 
-        // TODO: Investigate what AppContext setters that is needed
-
-        /*
-        appContext.setKeepContainersAcrossApplicationAttempts(keepContainers);
-        appContext.setApplicationName(appName);
-        appContext.setNodeLabelExpression(nodeLabelExpression);
-        appContext.setResource(capability);
-        appContext.setAMContainerSpec(amContainer);
-        appContext.setPriority(pri);
-        appContext.setQueue(amQueue);
-        */
-
-        LOG.info("Submitting application to ASM");
+        // Submit
         yarnClient.submitApplication(appContext);
 
-        // TODO: Add monitoring
-
-        return true;
+        return newAppResponse.getApplicationId();
     }
 
-    private void printUsage() {
-        new HelpFormatter().printHelp("Client", opts);
+    protected void monitorApplication(ApplicationId appId) {
+        // TODO: add monitoring, test it too
+    }
+
+    private ContainerLaunchContext createContainerLaunchContext(GetNewApplicationResponse newAppResponse) {
+        ContainerLaunchContext containerContext = Records.newRecord(ContainerLaunchContext.class);
+        containerContext.setTokens(null);
+        containerContext.setLocalResources(new HashMap<String, LocalResource>());
+        containerContext.setServiceData(null);
+        containerContext.setEnvironment(new HashMap<String, String>());
+        containerContext.setCommands(new ArrayList<String>());
+        containerContext.setApplicationACLs(null);
+        return containerContext;
+    }
+
+    private ApplicationSubmissionContext createApplicationSubmissionContext(YarnClientApplication newApp, ContainerLaunchContext containerContext) {
+        ApplicationSubmissionContext appContext = newApp.getApplicationSubmissionContext();
+        // appContext.setApplicationId();
+        appContext.setApplicationName(clientConf.get(APP_NAME));
+        // appContext.setQueue();
+        // appContext.setPriority();
+        appContext.setAMContainerSpec(containerContext);
+        // appContext.setUnmanagedAM();
+        // appContext.setCancelTokensWhenComplete();
+        // appContext.setMaxAppAttempts();
+        appContext.setResource(Resource.newInstance(clientConf.getInt(AM_MEMORY), clientConf.getInt(AM_VCORES)));
+        // appContext.setApplicationType();
+        // appContext.setKeepContainersAcrossApplicationAttempts();
+        // appContext.setApplicationTags();
+        // appContext.setNodeLabelExpression();
+        // appContext.setAMContainerResourceRequest();
+        // appContext.setAttemptFailuresValidityInterval();
+        // appContext.setLogAggregationContext();
+        // appContext.setReservationID();
+        return appContext;
     }
 }
