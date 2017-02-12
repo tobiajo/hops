@@ -13,6 +13,8 @@ public class ClientConf {
     public static final String APP_NAME = "app_name";
     public static final String AM_MEMORY = "am_memory";
     public static final String AM_VCORES = "am_vcores";
+    public static final String QUEUE_NAME = "queue_name";
+    public static final String REPORT_INTERVAL = "report_interval";
     public static final String JAR = "jar";
     public static final String DEBUG = "debug";
     public static final String HELP = "help";
@@ -29,12 +31,15 @@ public class ClientConf {
         addArgument(APP_NAME, "Application Name", "hops-tensorflow");
         addArgument(AM_MEMORY, "Amount of memory in MB to be requested to run the application master", "512");
         addArgument(AM_VCORES, "Amount of virtual cores to be requested to run the application master", "2");
+        addArgument(QUEUE_NAME, "RM Queue in which this application is to be submitted", "default");
+        addArgument(REPORT_INTERVAL, "Interval in ms for checking application status", "1000");
         addArgument(JAR, "Jar file containing the application master");
         addFlag(DEBUG, "Dump out debug information");
         addFlag(HELP, "Print usage");
     }
 
     public ClientConf(String[] args) throws ParseException {
+        LOG.info("Initializing ClientConf");
         cliParser = new GnuParser().parse(opts, (String[]) ArrayUtils.addAll(args, defaultArgs.toArray()));
 
         if (cliParser.hasOption("help")) {
