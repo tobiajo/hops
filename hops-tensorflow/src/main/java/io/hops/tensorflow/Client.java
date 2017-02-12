@@ -29,10 +29,14 @@ public class Client {
     public static void main(String[] args) {
         try {
             LOG.info("Initializing Client");
-            new Client(new ClientConf(args), new YarnConfiguration()).run();
+            new Client(new ClientConf(args)).run();
         } catch (Throwable t) {
             LOG.fatal("Error running Client", t);
         }
+    }
+
+    public Client(ClientConf clientConf) {
+        this(clientConf, new YarnConfiguration());
     }
 
     public Client(ClientConf clientConf, Configuration yarnConf) {
