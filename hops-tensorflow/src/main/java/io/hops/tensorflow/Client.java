@@ -12,9 +12,11 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Records;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.hops.tensorflow.ClientConf.*;
 
@@ -99,16 +101,13 @@ public class Client {
     }
 
     private ContainerLaunchContext createContainerLaunchContext(GetNewApplicationResponse newAppResponse) {
-        ContainerLaunchContext containerContext = Records.newRecord(ContainerLaunchContext.class);
-
-        containerContext.setTokens(null);
-        containerContext.setLocalResources(new HashMap<String, LocalResource>());
-        containerContext.setServiceData(null);
-        containerContext.setEnvironment(new HashMap<String, String>());
-        containerContext.setCommands(new ArrayList<String>());
-        containerContext.setApplicationACLs(null);
-
-        return containerContext;
+        Map<String, LocalResource> localResources = new HashMap<>();
+        Map<String, String> environment = new HashMap<>();
+        List<String> commands = new ArrayList<>();
+        Map<String, ByteBuffer> serviceData = null;
+        ByteBuffer tokens = null;
+        Map<ApplicationAccessType, String> acls = null;
+        return ContainerLaunchContext.newInstance(localResources, environment, commands, serviceData, tokens, acls);
     }
 
     private ApplicationSubmissionContext createApplicationSubmissionContext(YarnClientApplication newApp, ContainerLaunchContext containerContext) {
