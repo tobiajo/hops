@@ -104,12 +104,12 @@ import com.google.common.annotations.VisibleForTesting;
 /**
  * An ApplicationMaster for executing shell commands on a set of launched
  * containers using the YARN framework.
- *
+ * <p>
  * <p>
  * This class is meant to act as an example on how to write yarn-based
  * application masters.
  * </p>
- *
+ * <p>
  * <p>
  * The ApplicationMaster is started on a container by the
  * <code>ResourceManager</code>'s launcher. The first thing that the
@@ -121,16 +121,18 @@ import com.google.common.annotations.VisibleForTesting;
  * status/job history if needed. However, in the distributedshell, trackingurl
  * and appMasterHost:appMasterRpcPort are not supported.
  * </p>
- *
+ * <p>
  * <p>
  * The <code>ApplicationMaster</code> needs to send a heartbeat to the
  * <code>ResourceManager</code> at regular intervals to inform the
  * <code>ResourceManager</code> that it is up and alive. The
- * {@link ApplicationMasterProtocol#allocate} to the <code>ResourceManager</code> from the
+ * {@link ApplicationMasterProtocol#allocate} to the <code>ResourceManager</code>
+ * from the
  * <code>ApplicationMaster</code> acts as a heartbeat.
- *
  * <p>
- * For the actual handling of the job, the <code>ApplicationMaster</code> has to
+ * <p>
+ * For the actual handling of the job, the <code>ApplicationMaster</code> has
+ * to
  * request the <code>ResourceManager</code> via {@link AllocateRequest} for the
  * required no. of containers using {@link ResourceRequest} with the necessary
  * resource specifications such as node location, computational
@@ -139,23 +141,28 @@ import com.google.common.annotations.VisibleForTesting;
  * <code>ApplicationMaster</code> of the set of newly allocated containers,
  * completed containers as well as current state of available resources.
  * </p>
- *
  * <p>
- * For each allocated container, the <code>ApplicationMaster</code> can then set
- * up the necessary launch context via {@link ContainerLaunchContext} to specify
+ * <p>
+ * For each allocated container, the <code>ApplicationMaster</code> can then
+ * set
+ * up the necessary launch context via {@link ContainerLaunchContext} to
+ * specify
  * the allocated container id, local resources required by the executable, the
  * environment to be setup for the executable, commands to execute, etc. and
- * submit a {@link StartContainerRequest} to the {@link ContainerManagementProtocol} to
+ * submit a {@link StartContainerRequest} to the {@link
+ * ContainerManagementProtocol} to
  * launch and execute the defined commands on the given allocated container.
  * </p>
- *
+ * <p>
  * <p>
  * The <code>ApplicationMaster</code> can monitor the launched container by
  * either querying the <code>ResourceManager</code> using
- * {@link ApplicationMasterProtocol#allocate} to get updates on completed containers or via
- * the {@link ContainerManagementProtocol} by querying for the status of the allocated
+ * {@link ApplicationMasterProtocol#allocate} to get updates on completed
+ * containers or via
+ * the {@link ContainerManagementProtocol} by querying for the status of the
+ * allocated
  * container's {@link ContainerId}.
- *
+ * <p>
  * <p>
  * After the job has been completed, the <code>ApplicationMaster</code> has to
  * send a {@link FinishApplicationMasterRequest} to the
@@ -282,7 +289,8 @@ public class ApplicationMaster {
   private final String windows_command = "cmd /c";
   
   /**
-   * @param args Command line args
+   * @param args
+   *     Command line args
    */
   public static void main(String[] args) {
     boolean result = false;
@@ -347,7 +355,8 @@ public class ApplicationMaster {
   /**
    * Parse command line options
    *
-   * @param args Command line args
+   * @param args
+   *     Command line args
    * @return Whether init successful and run should be invoked
    * @throws ParseException
    * @throws IOException
@@ -508,7 +517,8 @@ public class ApplicationMaster {
   /**
    * Helper function to print usage
    *
-   * @param opts Parsed command line options
+   * @param opts
+   *     Parsed command line options
    */
   private void printUsage(Options opts) {
     new HelpFormatter().printHelp("ApplicationMaster", opts);
@@ -914,7 +924,8 @@ public class ApplicationMaster {
   }
   
   /**
-   * Thread to connect to the {@link ContainerManagementProtocol} and launch the container
+   * Thread to connect to the {@link ContainerManagementProtocol} and launch the
+   * container
    * that will execute the shell command.
    */
   private class LaunchContainerRunnable implements Runnable {
@@ -925,8 +936,10 @@ public class ApplicationMaster {
     NMCallbackHandler containerListener;
     
     /**
-     * @param lcontainer Allocated container
-     * @param containerListener Callback handler of the container
+     * @param lcontainer
+     *     Allocated container
+     * @param containerListener
+     *     Callback handler of the container
      */
     public LaunchContainerRunnable(
         Container lcontainer, NMCallbackHandler containerListener) {

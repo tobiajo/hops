@@ -81,34 +81,49 @@ import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 
 /**
  * Client for Distributed Shell application submission to YARN.
- *
- * <p> The distributed shell client allows an application master to be launched that in turn would run
+ * <p>
+ * <p> The distributed shell client allows an application master to be launched
+ * that in turn would run
  * the provided shell command on a set of containers. </p>
- *
- * <p>This client is meant to act as an example on how to write yarn-based applications. </p>
- *
- * <p> To submit an application, a client first needs to connect to the <code>ResourceManager</code>
- * aka ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The {@link ApplicationClientProtocol}
- * provides a way for the client to get access to cluster information and to request for a
+ * <p>
+ * <p>This client is meant to act as an example on how to write yarn-based
+ * applications. </p>
+ * <p>
+ * <p> To submit an application, a client first needs to connect to the
+ * <code>ResourceManager</code>
+ * aka ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The
+ * {@link ApplicationClientProtocol}
+ * provides a way for the client to get access to cluster information and to
+ * request for a
  * new {@link ApplicationId}. <p>
- *
- * <p> For the actual job submission, the client first has to create an {@link ApplicationSubmissionContext}.
- * The {@link ApplicationSubmissionContext} defines the application details such as {@link ApplicationId}
+ * <p>
+ * <p> For the actual job submission, the client first has to create an {@link
+ * ApplicationSubmissionContext}.
+ * The {@link ApplicationSubmissionContext} defines the application details such
+ * as {@link ApplicationId}
  * and application name, the priority assigned to the application and the queue
- * to which this application needs to be assigned. In addition to this, the {@link ApplicationSubmissionContext}
- * also defines the {@link ContainerLaunchContext} which describes the <code>Container</code> with which
+ * to which this application needs to be assigned. In addition to this, the
+ * {@link ApplicationSubmissionContext}
+ * also defines the {@link ContainerLaunchContext} which describes the
+ * <code>Container</code> with which
  * the {@link ApplicationMaster} is launched. </p>
- *
- * <p> The {@link ContainerLaunchContext} in this scenario defines the resources to be allocated for the
- * {@link ApplicationMaster}'s container, the local resources (jars, configuration files) to be made available
- * and the environment to be set for the {@link ApplicationMaster} and the commands to be executed to run the
+ * <p>
+ * <p> The {@link ContainerLaunchContext} in this scenario defines the resources
+ * to be allocated for the
+ * {@link ApplicationMaster}'s container, the local resources (jars,
+ * configuration files) to be made available
+ * and the environment to be set for the {@link ApplicationMaster} and the
+ * commands to be executed to run the
  * {@link ApplicationMaster}. <p>
- *
- * <p> Using the {@link ApplicationSubmissionContext}, the client submits the application to the
- * <code>ResourceManager</code> and then monitors the application by requesting the <code>ResourceManager</code>
- * for an {@link ApplicationReport} at regular time intervals. In case of the application taking too long, the client
- * kills the application by submitting a {@link KillApplicationRequest} to the <code>ResourceManager</code>. </p>
- *
+ * <p>
+ * <p> Using the {@link ApplicationSubmissionContext}, the client submits the
+ * application to the
+ * <code>ResourceManager</code> and then monitors the application by requesting
+ * the <code>ResourceManager</code>
+ * for an {@link ApplicationReport} at regular time intervals. In case of the
+ * application taking too long, the client
+ * kills the application by submitting a {@link KillApplicationRequest} to the
+ * <code>ResourceManager</code>. </p>
  */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
@@ -195,7 +210,8 @@ public class Client {
   public static final String SCRIPT_PATH = "ExecScript";
   
   /**
-   * @param args Command line arguments
+   * @param args
+   *     Command line arguments
    */
   public static void main(String[] args) {
     boolean result = false;
@@ -314,7 +330,9 @@ public class Client {
   
   /**
    * Parse command line options
-   * @param args Parsed command line options
+   *
+   * @param args
+   *     Parsed command line options
    * @return Whether the init was successful to run the client
    * @throws ParseException
    */
@@ -459,6 +477,7 @@ public class Client {
   
   /**
    * Main run function for the client
+   *
    * @return true if application completed successfully
    * @throws IOException
    * @throws YarnException
@@ -755,7 +774,9 @@ public class Client {
   /**
    * Monitor the submitted application for completion.
    * Kill application if time expires.
-   * @param appId Application Id of application to be monitored
+   *
+   * @param appId
+   *     Application Id of application to be monitored
    * @return true if application completed successfully
    * @throws YarnException
    * @throws IOException
@@ -824,7 +845,9 @@ public class Client {
   
   /**
    * Kill a submitted application by sending a call to the ASM
-   * @param appId Application Id to be killed.
+   *
+   * @param appId
+   *     Application Id to be killed.
    * @throws YarnException
    * @throws IOException
    */
