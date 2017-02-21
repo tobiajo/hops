@@ -28,88 +28,89 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class MySimpleYarnTest {
-    MiniYARNCluster cluster;
-    YarnConfiguration conf;
-    ApplicationClientProtocol appClient;
-
-    @Before
-    public void setUp() throws Exception {
-        cluster = new MiniYARNCluster(MySimpleYarnTest.class.getName(), 1, 1,
-                1, 1, false, true);
-        conf = new YarnConfiguration();
-        cluster.init(conf);
-        cluster.start();
-        appClient = ClientRMProxy.createRMProxy(conf, ApplicationClientProtocol
-                .class, true);
+  MiniYARNCluster cluster;
+  YarnConfiguration conf;
+  ApplicationClientProtocol appClient;
+  
+  @Before
+  public void setUp() throws Exception {
+    cluster = new MiniYARNCluster(MySimpleYarnTest.class.getName(), 1, 1,
+        1, 1, false, true);
+    conf = new YarnConfiguration();
+    cluster.init(conf);
+    cluster.start();
+    appClient = ClientRMProxy.createRMProxy(conf, ApplicationClientProtocol
+        .class, true);
+  }
+  
+  @After
+  public void tearDown() throws Exception {
+    if (null != appClient) {
+      RPC.stopProxy(appClient);
     }
-
-    @After
-    public void tearDown() throws Exception {
-        if (null != appClient) {
-            RPC.stopProxy(appClient);
-        }
-
-        if (null != cluster) {
-            cluster.stop();
-        }
+    
+    if (null != cluster) {
+      cluster.stop();
     }
-
-    @Test
-    public void testNumberOfNodes() throws Exception {
-        // Get the ResourceManager reference
-        ResourceManager rm = cluster.getResourceManager();
-        int numOfNodes = rm.getResourceScheduler().getNumClusterNodes();
-        assertEquals("There should be 1 node in the cluster", 1, numOfNodes);
-    }
-
-    @Test
-    public void testSubmitNewApplication() throws Exception {
-        // Get ResourceManager reference
-        ResourceManager rm = cluster.getResourceManager();
-
-        // Get a new application ID from the RM
-        GetNewApplicationResponse newAppRes = appClient.getNewApplication
-                (GetNewApplicationRequest.newInstance());
-
-        assertNotNull(newAppRes.getApplicationId());
-        assertNotNull(newAppRes.getMaximumResourceCapability());
-
-        // Construct a dummy launch context for the ApplicationMaster container
-        ContainerLaunchContext launchCtx = ContainerLaunchContext.newInstance(
-                new HashMap<String, LocalResource>(),
-                new HashMap<String, String>(),
-                new ArrayList<String>(),
-                new HashMap<String, ByteBuffer>(),
-                ByteBuffer.allocate(3),
-                new HashMap<ApplicationAccessType, String>()
+  }
+  
+  @Test
+  public void testNumberOfNodes() throws Exception {
+    // Get the ResourceManager reference
+    ResourceManager rm = cluster.getResourceManager();
+    int numOfNodes = rm.getResourceScheduler().getNumClusterNodes();
+    assertEquals("There should be 1 node in the cluster", 1, numOfNodes);
+  }
+  
+  @Test
+  public void testSubmitNewApplication() throws Exception {
+    // Get ResourceManager reference
+    ResourceManager rm = cluster.getResourceManager();
+    
+    // Get a new application ID from the RM
+    GetNewApplicationResponse newAppRes = appClient.getNewApplication
+        (GetNewApplicationRequest.newInstance());
+    
+    assertNotNull(newAppRes.getApplicationId());
+    assertNotNull(newAppRes.getMaximumResourceCapability());
+    
+    // Construct a dummy launch context for the ApplicationMaster container
+    ContainerLaunchContext launchCtx = ContainerLaunchContext.newInstance(
+        new HashMap<String, LocalResource>(),
+        new HashMap<String, String>(),
+        new ArrayList<String>(),
+        new HashMap<String, ByteBuffer>(),
+        ByteBuffer.allocate(3),
+        new HashMap<ApplicationAccessType, String>()
+    );
+    
+    // Construct a dummy Application Submission Context
+    ApplicationSubmissionContext submissionCtx =
+        ApplicationSubmissionContext.newInstance(
+            newAppRes.getApplicationId(),
+            "MyFirstApplication",
+            "default",
+            Priority.newInstance(0),
+            launchCtx,
+            false,
+            true,
+            2,
+            Resource.newInstance(1024, 1),
+            "serviceType",
+            false
         );
-
-        // Construct a dummy Application Submission Context
-        ApplicationSubmissionContext submissionCtx = ApplicationSubmissionContext.newInstance(
-                newAppRes.getApplicationId(),
-                "MyFirstApplication",
-                "default",
-                Priority.newInstance(0),
-                launchCtx,
-                false,
-                true,
-                2,
-                Resource.newInstance(1024, 1),
-                "serviceType",
-                false
-        );
-
-        appClient.submitApplication(SubmitApplicationRequest
-                .newInstance(submissionCtx));
-
-        // Get the running applications from the RM
-        ConcurrentMap<ApplicationId, RMApp> runningApps = rm.getRMContext()
-                .getRMApps();
-
-        assertEquals("There should be one running up", 1, runningApps.size());
-        RMApp rmApp = runningApps.get(newAppRes.getApplicationId());
-        String appType = rmApp.getApplicationType();
-        assertEquals("Application type should be " + submissionCtx
-                .getApplicationType(), submissionCtx.getApplicationType(), appType);
-    }
+    
+    appClient.submitApplication(SubmitApplicationRequest
+        .newInstance(submissionCtx));
+    
+    // Get the running applications from the RM
+    ConcurrentMap<ApplicationId, RMApp> runningApps = rm.getRMContext()
+        .getRMApps();
+    
+    assertEquals("There should be one running up", 1, runningApps.size());
+    RMApp rmApp = runningApps.get(newAppRes.getApplicationId());
+    String appType = rmApp.getApplicationType();
+    assertEquals("Application type should be " + submissionCtx
+        .getApplicationType(), submissionCtx.getApplicationType(), appType);
+  }
 }

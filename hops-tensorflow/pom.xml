@@ -2,47 +2,47 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <artifactId>hadoop-project</artifactId>
-        <groupId>io.hops</groupId>
-        <version>2.7.3</version>
-        <relativePath>../hadoop-project</relativePath>
-    </parent>
-    <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <artifactId>hadoop-project</artifactId>
+    <groupId>io.hops</groupId>
+    <version>2.7.3</version>
+    <relativePath>../hadoop-project</relativePath>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>hops-tensorflow</artifactId>
+  <artifactId>hops-tensorflow</artifactId>
 
-    <dependencies>
-        <!-- provided -->
-        <dependency>
-            <groupId>io.hops</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.hops</groupId>
-            <artifactId>hadoop-yarn-client</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <!-- test -->
-        <dependency>
-            <groupId>io.hops</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.hops</groupId>
-            <artifactId>hadoop-yarn-server-tests</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+  <dependencies>
+    <!-- provided -->
+    <dependency>
+      <groupId>io.hops</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.hops</groupId>
+      <artifactId>hadoop-yarn-client</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <!-- test -->
+    <dependency>
+      <groupId>io.hops</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.hops</groupId>
+      <artifactId>hadoop-yarn-server-tests</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
 
 </project>
