@@ -160,6 +160,7 @@ public class Client {
   private static final String log4jPath = "log4j.properties";
   
   public static final String SCRIPT_PATH = "ExecScript";
+  public static final String YARNTF_STAGING = ".yarntfStaging";
   
   /**
    * @param args
@@ -206,7 +207,7 @@ public class Client {
     yarnClient.init(conf);
     opts = new Options();
     opts.addOption("appname", true,
-        "Application Name. Default value - DistributedShell");
+        "Application Name. Default value - YarnTF");
     opts.addOption("priority", true, "Application Priority. Default 0");
     opts.addOption("queue", true,
         "RM Queue in which this application is to be submitted");
@@ -319,7 +320,7 @@ public class Client {
       keepContainers = true;
     }
     
-    appName = cliParser.getOptionValue("appname", "DistributedShell");
+    appName = cliParser.getOptionValue("appname", "YarnTF");
     amPriority = Integer.parseInt(cliParser.getOptionValue("priority", "0"));
     amQueue = cliParser.getOptionValue("queue", "default");
     amMemory =
@@ -634,7 +635,7 @@ public class Client {
     if (!shellScriptPath.isEmpty()) {
       Path shellSrc = new Path(shellScriptPath);
       String shellPathSuffix =
-          appName + "/" + appId.toString() + "/" + SCRIPT_PATH;
+          YARNTF_STAGING + "/" + appId.toString() + "/" + SCRIPT_PATH;
       Path shellDst =
           new Path(fs.getHomeDirectory(), shellPathSuffix);
       fs.copyFromLocalFile(false, true, shellSrc, shellDst);
@@ -862,7 +863,7 @@ public class Client {
       Map<String, LocalResource> localResources,
       String resources) throws IOException {
     String suffix =
-        appName + "/" + appId + "/" + fileDstPath;
+        YARNTF_STAGING + "/" + appId + "/" + fileDstPath;
     Path dst =
         new Path(fs.getHomeDirectory(), suffix);
     if (fileSrcPath == null) {

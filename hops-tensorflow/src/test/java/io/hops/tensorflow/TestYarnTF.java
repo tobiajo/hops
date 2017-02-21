@@ -54,10 +54,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestHopsTF {
+public class TestYarnTF {
   
   private static final Log LOG =
-      LogFactory.getLog(TestHopsTF.class);
+      LogFactory.getLog(TestYarnTF.class);
   
   protected MiniYARNCluster yarnCluster = null;
   protected YarnConfiguration conf = null;
@@ -84,7 +84,7 @@ public class TestHopsTF {
     
     if (yarnCluster == null) {
       yarnCluster =
-          new MiniYARNCluster(TestHopsTF.class.getSimpleName(), 1,
+          new MiniYARNCluster(TestYarnTF.class.getSimpleName(), 1,
               numNodeManager, 1, 1);
       yarnCluster.init(conf);
       
@@ -451,7 +451,7 @@ public class TestHopsTF {
   @Test(timeout = 90000)
   public void testDSShellWithCustomLogPropertyFile() throws Exception {
     final File basedir =
-        new File("target", TestHopsTF.class.getName());
+        new File("target", TestYarnTF.class.getName());
     final File tmpDir = new File(basedir, "tmpDir");
     tmpDir.mkdirs();
     final File customLogProperty = new File(tmpDir, "custom_log4j.properties");
@@ -580,7 +580,7 @@ public class TestHopsTF {
   @Test(timeout = 90000)
   public void testDSShellWithShellScript() throws Exception {
     final File basedir =
-        new File("target", TestHopsTF.class.getName());
+        new File("target", TestYarnTF.class.getName());
     final File tmpDir = new File(basedir, "tmpDir");
     tmpDir.mkdirs();
     final File customShellScript = new File(tmpDir, "custom_script.sh");
