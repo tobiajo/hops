@@ -1,4 +1,4 @@
-package io.hops.tensorflow;
+package old_io.hops.tensorflow;
 
 import org.apache.commons.cli.*;
 import org.apache.commons.lang.ArrayUtils;
@@ -44,6 +44,10 @@ public class ClientConf {
 
         if (cliParser.hasOption("help")) {
             printUsage();
+        }
+
+        if (!cliParser.hasOption("jar")) {
+            throw new IllegalArgumentException("No jar file specified for application master");
         }
     }
 
