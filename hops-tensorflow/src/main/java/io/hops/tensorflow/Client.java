@@ -491,25 +491,104 @@ public class Client {
       prepareTimelineDomain();
     }
     
-    // Get a new application id
+    // Get a new application from our RM
     YarnClientApplication app = yarnClient.createApplication();
     GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
-  
+    ApplicationId appId = appResponse.getApplicationId();
+    
     // Verify whether the cluster has enough resources for our AM
     verifyClusterResources(appResponse);
     
-    // set the application name
+    // Set up the appropriate contexts to launch our AM
+    ContainerLaunchContext amContainer =
+        createContainerLaunchContext(appResponse);
     ApplicationSubmissionContext appContext =
-        app.getApplicationSubmissionContext();
-    ApplicationId appId = appContext.getApplicationId();
+        createApplicationSubmissionContext(app, amContainer);
     
-    appContext.setKeepContainersAcrossApplicationAttempts(keepContainers);
-    appContext.setApplicationName(appName);
+    // Submit the application to the applications manager
+    // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
+    // Ignore the response as either a valid response object is returned on success
+    // or an exception thrown to denote some form of a failure
+    LOG.info("Submitting application to ASM");
     
-    if (attemptFailuresValidityInterval >= 0) {
-      appContext
-          .setAttemptFailuresValidityInterval(attemptFailuresValidityInterval);
+    yarnClient.submitApplication(appContext);
+    
+    // TODO
+    // Try submitting the same request again
+    // app submission failure?
+    
+    // Monitor the application
+    return monitorApplication(appId);
+  }
+  
+  private void logClusterState() throws IOException, YarnException {
+    YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
+    LOG.info("Got Cluster metric info from ASM"
+        + ", numNodeManagers=" + clusterMetrics.getNumNodeManagers());
+    
+    List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(
+        NodeState.RUNNING);
+    LOG.info("Got Cluster node info from ASM");
+    for (NodeReport node : clusterNodeReports) {
+      LOG.info("Got node report from ASM for"
+          + ", nodeId=" + node.getNodeId()
+          + ", nodeAddress" + node.getHttpAddress()
+          + ", nodeRackName" + node.getRackName()
+          + ", nodeNumContainers" + node.getNumContainers());
     }
+    
+    QueueInfo queueInfo = yarnClient.getQueueInfo(this.amQueue);
+    LOG.info("Queue info"
+        + ", queueName=" + queueInfo.getQueueName()
+        + ", queueCurrentCapacity=" + queueInfo.getCurrentCapacity()
+        + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
+        + ", queueApplicationCount=" + queueInfo.getApplications().size()
+        + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());
+    
+    List<QueueUserACLInfo> listAclInfo = yarnClient.getQueueAclsInfo();
+    for (QueueUserACLInfo aclInfo : listAclInfo) {
+      for (QueueACL userAcl : aclInfo.getUserAcls()) {
+        LOG.info("User ACL Info for Queue"
+            + ", queueName=" + aclInfo.getQueueName()
+            + ", userAcl=" + userAcl.name());
+      }
+    }
+  }
+  
+  private void verifyClusterResources(GetNewApplicationResponse appResponse) {
+    // TODO get min/max resource capabilities from RM and change memory ask if needed
+    // If we do not have min/max, we may not be able to correctly request
+    // the required resources from the RM for the app master
+    // Memory ask has to be a multiple of min and less than max.
+    // Dump out information about cluster capability as seen by the resource manager
+    int maxMem = appResponse.getMaximumResourceCapability().getMemory();
+    LOG.info("Max mem capabililty of resources in this cluster " + maxMem);
+    
+    // A resource ask cannot exceed the max.
+    if (amMemory > maxMem) {
+      LOG.info(
+          "AM memory specified above max threshold of cluster. Using max value."
+              + ", specified=" + amMemory
+              + ", max=" + maxMem);
+      amMemory = maxMem;
+    }
+    
+    int maxVCores =
+        appResponse.getMaximumResourceCapability().getVirtualCores();
+    LOG.info("Max virtual cores capabililty of resources in this cluster " +
+        maxVCores);
+    
+    if (amVCores > maxVCores) {
+      LOG.info("AM virtual cores specified above max threshold of cluster. "
+          + "Using max value." + ", specified=" + amVCores
+          + ", max=" + maxVCores);
+      amVCores = maxVCores;
+    }
+  }
+  
+  private ContainerLaunchContext createContainerLaunchContext
+      (GetNewApplicationResponse appResponse) throws IOException {
+    ApplicationId appId = appResponse.getApplicationId();
     
     // set local resources for the application master
     // local files or archives as needed
@@ -622,9 +701,6 @@ public class Client {
     vargs.add("--container_memory " + String.valueOf(containerMemory));
     vargs.add("--container_vcores " + String.valueOf(containerVirtualCores));
     vargs.add("--num_containers " + String.valueOf(numContainers));
-    if (null != nodeLabelExpression) {
-      appContext.setNodeLabelExpression(nodeLabelExpression);
-    }
     vargs.add("--priority " + String.valueOf(shellCmdPriority));
     
     for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
@@ -653,16 +729,6 @@ public class Client {
     ContainerLaunchContext amContainer = ContainerLaunchContext.newInstance(
         localResources, env, commands, null, null, null);
     
-    // Set up resource type requirements
-    // For now, both memory and vcores are supported, so we set memory and
-    // vcores requirements
-    Resource capability = Resource.newInstance(amMemory, amVCores);
-    appContext.setResource(capability);
-    
-    // Service data is a binary blob that can be passed to the application
-    // Not needed in this scenario
-    // amContainer.setServiceData(serviceData);
-    
     // Setup security tokens
     if (UserGroupInformation.isSecurityEnabled()) {
       // Note: Credentials class is marked as LimitedPrivate for HDFS and MapReduce
@@ -686,6 +752,37 @@ public class Client {
       ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
       amContainer.setTokens(fsTokens);
     }
+    return amContainer;
+  }
+  
+  private ApplicationSubmissionContext createApplicationSubmissionContext
+      (YarnClientApplication app, ContainerLaunchContext amContainer)
+      throws IOException {
+    // set the application name
+    ApplicationSubmissionContext appContext =
+        app.getApplicationSubmissionContext();
+    
+    appContext.setKeepContainersAcrossApplicationAttempts(keepContainers);
+    appContext.setApplicationName(appName);
+    
+    if (attemptFailuresValidityInterval >= 0) {
+      appContext
+          .setAttemptFailuresValidityInterval(attemptFailuresValidityInterval);
+    }
+    
+    if (null != nodeLabelExpression) {
+      appContext.setNodeLabelExpression(nodeLabelExpression);
+    }
+    
+    // Set up resource type requirements
+    // For now, both memory and vcores are supported, so we set memory and
+    // vcores requirements
+    Resource capability = Resource.newInstance(amMemory, amVCores);
+    appContext.setResource(capability);
+    
+    // Service data is a binary blob that can be passed to the application
+    // Not needed in this scenario
+    // amContainer.setServiceData(serviceData);
     
     appContext.setAMContainerSpec(amContainer);
     
@@ -697,86 +794,7 @@ public class Client {
     // Set the queue to which this application is to be submitted in the RM
     appContext.setQueue(amQueue);
     
-    // Submit the application to the applications manager
-    // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
-    // Ignore the response as either a valid response object is returned on success
-    // or an exception thrown to denote some form of a failure
-    LOG.info("Submitting application to ASM");
-    
-    yarnClient.submitApplication(appContext);
-    
-    // TODO
-    // Try submitting the same request again
-    // app submission failure?
-    
-    // Monitor the application
-    return monitorApplication(appId);
-    
-  }
-  
-  private void logClusterState() throws IOException, YarnException {
-    YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
-    LOG.info("Got Cluster metric info from ASM"
-        + ", numNodeManagers=" + clusterMetrics.getNumNodeManagers());
-  
-    List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(
-        NodeState.RUNNING);
-    LOG.info("Got Cluster node info from ASM");
-    for (NodeReport node : clusterNodeReports) {
-      LOG.info("Got node report from ASM for"
-          + ", nodeId=" + node.getNodeId()
-          + ", nodeAddress" + node.getHttpAddress()
-          + ", nodeRackName" + node.getRackName()
-          + ", nodeNumContainers" + node.getNumContainers());
-    }
-  
-    QueueInfo queueInfo = yarnClient.getQueueInfo(this.amQueue);
-    LOG.info("Queue info"
-        + ", queueName=" + queueInfo.getQueueName()
-        + ", queueCurrentCapacity=" + queueInfo.getCurrentCapacity()
-        + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
-        + ", queueApplicationCount=" + queueInfo.getApplications().size()
-        + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());
-  
-    List<QueueUserACLInfo> listAclInfo = yarnClient.getQueueAclsInfo();
-    for (QueueUserACLInfo aclInfo : listAclInfo) {
-      for (QueueACL userAcl : aclInfo.getUserAcls()) {
-        LOG.info("User ACL Info for Queue"
-            + ", queueName=" + aclInfo.getQueueName()
-            + ", userAcl=" + userAcl.name());
-      }
-    }
-  }
-  
-  private void verifyClusterResources(GetNewApplicationResponse appResponse) {
-    // TODO get min/max resource capabilities from RM and change memory ask if needed
-    // If we do not have min/max, we may not be able to correctly request
-    // the required resources from the RM for the app master
-    // Memory ask has to be a multiple of min and less than max.
-    // Dump out information about cluster capability as seen by the resource manager
-    int maxMem = appResponse.getMaximumResourceCapability().getMemory();
-    LOG.info("Max mem capabililty of resources in this cluster " + maxMem);
-  
-    // A resource ask cannot exceed the max.
-    if (amMemory > maxMem) {
-      LOG.info(
-          "AM memory specified above max threshold of cluster. Using max value."
-              + ", specified=" + amMemory
-              + ", max=" + maxMem);
-      amMemory = maxMem;
-    }
-  
-    int maxVCores =
-        appResponse.getMaximumResourceCapability().getVirtualCores();
-    LOG.info("Max virtual cores capabililty of resources in this cluster " +
-        maxVCores);
-  
-    if (amVCores > maxVCores) {
-      LOG.info("AM virtual cores specified above max threshold of cluster. "
-          + "Using max value." + ", specified=" + amVCores
-          + ", max=" + maxVCores);
-      amVCores = maxVCores;
-    }
+    return appContext;
   }
   
   /**
