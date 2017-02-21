@@ -1,44 +1,6 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.hops.tensorflow;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.StringReader;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -62,13 +24,8 @@ import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.hadoop.yarn.api.ApplicationMasterProtocol;
 import org.apache.hadoop.yarn.api.ContainerManagementProtocol;
-import org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
@@ -83,7 +40,6 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
@@ -99,76 +55,27 @@ import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.log4j.LogManager;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.StringReader;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * An ApplicationMaster for executing shell commands on a set of launched
- * containers using the YARN framework.
- * <p>
- * <p>
- * This class is meant to act as an example on how to write yarn-based
- * application masters.
- * </p>
- * <p>
- * <p>
- * The ApplicationMaster is started on a container by the
- * <code>ResourceManager</code>'s launcher. The first thing that the
- * <code>ApplicationMaster</code> needs to do is to connect and register itself
- * with the <code>ResourceManager</code>. The registration sets up information
- * within the <code>ResourceManager</code> regarding what host:port the
- * ApplicationMaster is listening on to provide any form of functionality to a
- * client as well as a tracking url that a client can use to keep track of
- * status/job history if needed. However, in the distributedshell, trackingurl
- * and appMasterHost:appMasterRpcPort are not supported.
- * </p>
- * <p>
- * <p>
- * The <code>ApplicationMaster</code> needs to send a heartbeat to the
- * <code>ResourceManager</code> at regular intervals to inform the
- * <code>ResourceManager</code> that it is up and alive. The
- * {@link ApplicationMasterProtocol#allocate} to the <code>ResourceManager</code>
- * from the
- * <code>ApplicationMaster</code> acts as a heartbeat.
- * <p>
- * <p>
- * For the actual handling of the job, the <code>ApplicationMaster</code> has
- * to
- * request the <code>ResourceManager</code> via {@link AllocateRequest} for the
- * required no. of containers using {@link ResourceRequest} with the necessary
- * resource specifications such as node location, computational
- * (memory/disk/cpu) resource requirements. The <code>ResourceManager</code>
- * responds with an {@link AllocateResponse} that informs the
- * <code>ApplicationMaster</code> of the set of newly allocated containers,
- * completed containers as well as current state of available resources.
- * </p>
- * <p>
- * <p>
- * For each allocated container, the <code>ApplicationMaster</code> can then
- * set
- * up the necessary launch context via {@link ContainerLaunchContext} to
- * specify
- * the allocated container id, local resources required by the executable, the
- * environment to be setup for the executable, commands to execute, etc. and
- * submit a {@link StartContainerRequest} to the {@link
- * ContainerManagementProtocol} to
- * launch and execute the defined commands on the given allocated container.
- * </p>
- * <p>
- * <p>
- * The <code>ApplicationMaster</code> can monitor the launched container by
- * either querying the <code>ResourceManager</code> using
- * {@link ApplicationMasterProtocol#allocate} to get updates on completed
- * containers or via
- * the {@link ContainerManagementProtocol} by querying for the status of the
- * allocated
- * container's {@link ContainerId}.
- * <p>
- * <p>
- * After the job has been completed, the <code>ApplicationMaster</code> has to
- * send a {@link FinishApplicationMasterRequest} to the
- * <code>ResourceManager</code> to inform it that the
- * <code>ApplicationMaster</code> has been completed.
- */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public class ApplicationMaster {
