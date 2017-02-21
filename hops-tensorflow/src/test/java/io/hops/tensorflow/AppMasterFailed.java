@@ -24,9 +24,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
-public class TestDSFailedAppMaster extends ApplicationMaster {
+public class AppMasterFailed extends ApplicationMaster {
   
-  private static final Log LOG = LogFactory.getLog(TestDSFailedAppMaster.class);
+  private static final Log LOG = LogFactory.getLog(AppMasterFailed.class);
   
   @Override
   public void run() throws YarnException, IOException, InterruptedException {
@@ -52,7 +52,7 @@ public class TestDSFailedAppMaster extends ApplicationMaster {
   public static void main(String[] args) {
     boolean result = false;
     try {
-      TestDSFailedAppMaster appMaster = new TestDSFailedAppMaster();
+      AppMasterFailed appMaster = new AppMasterFailed();
       boolean doRun = appMaster.init(args);
       if (!doRun) {
         System.exit(0);

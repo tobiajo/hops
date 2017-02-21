@@ -25,12 +25,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 
-public class ContainerLaunchFailAppMaster extends ApplicationMaster {
+public class AppMasterContainerLaunchFail extends ApplicationMaster {
   
   private static final Log LOG =
-      LogFactory.getLog(ContainerLaunchFailAppMaster.class);
+      LogFactory.getLog(AppMasterContainerLaunchFail.class);
   
-  public ContainerLaunchFailAppMaster() {
+  public AppMasterContainerLaunchFail() {
     super();
   }
   
@@ -59,8 +59,8 @@ public class ContainerLaunchFailAppMaster extends ApplicationMaster {
   public static void main(String[] args) {
     boolean result = false;
     try {
-      ContainerLaunchFailAppMaster appMaster =
-          new ContainerLaunchFailAppMaster();
+      AppMasterContainerLaunchFail appMaster =
+          new AppMasterContainerLaunchFail();
       LOG.info("Initializing ApplicationMaster");
       boolean doRun = appMaster.init(args);
       if (!doRun) {

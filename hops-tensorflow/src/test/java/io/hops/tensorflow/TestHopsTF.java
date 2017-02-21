@@ -54,10 +54,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestDistributedShell {
+public class TestHopsTF {
   
   private static final Log LOG =
-      LogFactory.getLog(TestDistributedShell.class);
+      LogFactory.getLog(TestHopsTF.class);
   
   protected MiniYARNCluster yarnCluster = null;
   protected YarnConfiguration conf = null;
@@ -84,7 +84,7 @@ public class TestDistributedShell {
     
     if (yarnCluster == null) {
       yarnCluster =
-          new MiniYARNCluster(TestDistributedShell.class.getSimpleName(), 1,
+          new MiniYARNCluster(TestHopsTF.class.getSimpleName(), 1,
               numNodeManager, 1, 1);
       yarnCluster.init(conf);
       
@@ -360,7 +360,7 @@ public class TestDistributedShell {
     };
     
     LOG.info("Initializing DS Client");
-    Client client = new Client(TestDSFailedAppMaster.class.getName(),
+    Client client = new Client(AppMasterFailed.class.getName(),
         new Configuration(yarnCluster.getConfig()));
     
     client.init(args);
@@ -373,7 +373,7 @@ public class TestDistributedShell {
   }
   
   /*
-   * The sleeping period in TestDSSleepingAppMaster is set as 5 seconds.
+   * The sleeping period in AppMasterSleeping is set as 5 seconds.
    * Set attempt_failures_validity_interval as 2.5 seconds. It will check
    * how many attempt failures for previous 2.5 seconds.
    * The application is expected to be successful.
@@ -398,7 +398,7 @@ public class TestDistributedShell {
     LOG.info("Initializing DS Client");
     Configuration conf = yarnCluster.getConfig();
     conf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 2);
-    Client client = new Client(TestDSSleepingAppMaster.class.getName(),
+    Client client = new Client(AppMasterSleeping.class.getName(),
         new Configuration(conf));
     
     client.init(args);
@@ -411,7 +411,7 @@ public class TestDistributedShell {
   }
   
   /*
-   * The sleeping period in TestDSSleepingAppMaster is set as 5 seconds.
+   * The sleeping period in AppMasterSleeping is set as 5 seconds.
    * Set attempt_failures_validity_interval as 15 seconds. It will check
    * how many attempt failure for previous 15 seconds.
    * The application is expected to be fail.
@@ -436,7 +436,7 @@ public class TestDistributedShell {
     LOG.info("Initializing DS Client");
     Configuration conf = yarnCluster.getConfig();
     conf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 2);
-    Client client = new Client(TestDSSleepingAppMaster.class.getName(),
+    Client client = new Client(AppMasterSleeping.class.getName(),
         new Configuration(conf));
     
     client.init(args);
@@ -451,7 +451,7 @@ public class TestDistributedShell {
   @Test(timeout = 90000)
   public void testDSShellWithCustomLogPropertyFile() throws Exception {
     final File basedir =
-        new File("target", TestDistributedShell.class.getName());
+        new File("target", TestHopsTF.class.getName());
     final File tmpDir = new File(basedir, "tmpDir");
     tmpDir.mkdirs();
     final File customLogProperty = new File(tmpDir, "custom_log4j.properties");
@@ -580,7 +580,7 @@ public class TestDistributedShell {
   @Test(timeout = 90000)
   public void testDSShellWithShellScript() throws Exception {
     final File basedir =
-        new File("target", TestDistributedShell.class.getName());
+        new File("target", TestHopsTF.class.getName());
     final File tmpDir = new File(basedir, "tmpDir");
     tmpDir.mkdirs();
     final File customShellScript = new File(tmpDir, "custom_script.sh");
@@ -805,7 +805,7 @@ public class TestDistributedShell {
     };
     
     LOG.info("Initializing DS Client");
-    Client client = new Client(ContainerLaunchFailAppMaster.class.getName(),
+    Client client = new Client(AppMasterContainerLaunchFail.class.getName(),
         new Configuration(yarnCluster.getConfig()));
     boolean initSuccess = client.init(args);
     Assert.assertTrue(initSuccess);

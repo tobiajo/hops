@@ -21,16 +21,16 @@ package io.hops.tensorflow;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class TestDSSleepingAppMaster extends ApplicationMaster {
+public class AppMasterSleeping extends ApplicationMaster {
   
   private static final Log LOG =
-      LogFactory.getLog(TestDSSleepingAppMaster.class);
+      LogFactory.getLog(AppMasterSleeping.class);
   private static final long SLEEP_TIME = 5000;
   
   public static void main(String[] args) {
     boolean result = false;
     try {
-      TestDSSleepingAppMaster appMaster = new TestDSSleepingAppMaster();
+      AppMasterSleeping appMaster = new AppMasterSleeping();
       boolean doRun = appMaster.init(args);
       if (!doRun) {
         System.exit(0);
