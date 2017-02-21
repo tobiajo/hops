@@ -79,52 +79,6 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 
-/**
- * Client for Distributed Shell application submission to YARN.
- * <p>
- * <p> The distributed shell client allows an application master to be launched
- * that in turn would run
- * the provided shell command on a set of containers. </p>
- * <p>
- * <p>This client is meant to act as an example on how to write yarn-based
- * applications. </p>
- * <p>
- * <p> To submit an application, a client first needs to connect to the
- * <code>ResourceManager</code>
- * aka ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The
- * {@link ApplicationClientProtocol}
- * provides a way for the client to get access to cluster information and to
- * request for a
- * new {@link ApplicationId}. <p>
- * <p>
- * <p> For the actual job submission, the client first has to create an {@link
- * ApplicationSubmissionContext}.
- * The {@link ApplicationSubmissionContext} defines the application details such
- * as {@link ApplicationId}
- * and application name, the priority assigned to the application and the queue
- * to which this application needs to be assigned. In addition to this, the
- * {@link ApplicationSubmissionContext}
- * also defines the {@link ContainerLaunchContext} which describes the
- * <code>Container</code> with which
- * the {@link ApplicationMaster} is launched. </p>
- * <p>
- * <p> The {@link ContainerLaunchContext} in this scenario defines the resources
- * to be allocated for the
- * {@link ApplicationMaster}'s container, the local resources (jars,
- * configuration files) to be made available
- * and the environment to be set for the {@link ApplicationMaster} and the
- * commands to be executed to run the
- * {@link ApplicationMaster}. <p>
- * <p>
- * <p> Using the {@link ApplicationSubmissionContext}, the client submits the
- * application to the
- * <code>ResourceManager</code> and then monitors the application by requesting
- * the <code>ResourceManager</code>
- * for an {@link ApplicationReport} at regular time intervals. In case of the
- * application taking too long, the client
- * kills the application by submitting a {@link KillApplicationRequest} to the
- * <code>ResourceManager</code>. </p>
- */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public class Client {
@@ -588,104 +542,16 @@ public class Client {
   
   private ContainerLaunchContext createContainerLaunchContext
       (GetNewApplicationResponse appResponse) throws IOException {
+    
     ApplicationId appId = appResponse.getApplicationId();
-    
-    // set local resources for the application master
-    // local files or archives as needed
-    // In this scenario, the jar file for the application master is part of the local resources
-    Map<String, LocalResource> localResources =
-        new HashMap<String, LocalResource>();
-    
-    LOG.info(
-        "Copy App Master jar from local filesystem and add to local environment");
-    // Copy the application master jar to the filesystem
-    // Create a local resource to point to the destination jar path
     FileSystem fs = FileSystem.get(conf);
-    addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(),
-        localResources, null);
     
-    // Set the log4j properties if needed
-    if (!log4jPropFile.isEmpty()) {
-      addToLocalResources(fs, log4jPropFile, log4jPath, appId.toString(),
-          localResources, null);
-    }
-    
-    // The shell script has to be made available on the final container(s)
-    // where it will be executed.
-    // To do this, we need to first copy into the filesystem that is visible
-    // to the yarn framework.
-    // We do not need to set this as a local resource for the application
-    // master as the application master does not need it.
-    String hdfsShellScriptLocation = "";
-    long hdfsShellScriptLen = 0;
-    long hdfsShellScriptTimestamp = 0;
-    if (!shellScriptPath.isEmpty()) {
-      Path shellSrc = new Path(shellScriptPath);
-      String shellPathSuffix =
-          appName + "/" + appId.toString() + "/" + SCRIPT_PATH;
-      Path shellDst =
-          new Path(fs.getHomeDirectory(), shellPathSuffix);
-      fs.copyFromLocalFile(false, true, shellSrc, shellDst);
-      hdfsShellScriptLocation = shellDst.toUri().toString();
-      FileStatus shellFileStatus = fs.getFileStatus(shellDst);
-      hdfsShellScriptLen = shellFileStatus.getLen();
-      hdfsShellScriptTimestamp = shellFileStatus.getModificationTime();
-    }
-    
-    if (!shellCommand.isEmpty()) {
-      addToLocalResources(fs, null, shellCommandPath, appId.toString(),
-          localResources, shellCommand);
-    }
-    
-    if (shellArgs.length > 0) {
-      addToLocalResources(fs, null, shellArgsPath, appId.toString(),
-          localResources, StringUtils.join(shellArgs, " "));
-    }
+    Map<String, String> env = setupLaunchEnv(appId, fs);
+    Map<String, LocalResource> localResources = prepareLocalResources(appId,
+        fs);
     
     // Set the necessary security tokens as needed
     //amContainer.setContainerTokens(containerToken);
-    
-    // Set the env variables to be setup in the env where the application master will be run
-    LOG.info("Set the environment for the application master");
-    Map<String, String> env = new HashMap<String, String>();
-    
-    // put location of shell script into env
-    // using the env info, the application master will create the correct local resource for the
-    // eventual containers that will be launched to execute the shell scripts
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION,
-        hdfsShellScriptLocation);
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTTIMESTAMP,
-        Long.toString(hdfsShellScriptTimestamp));
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLEN,
-        Long.toString(hdfsShellScriptLen));
-    if (domainId != null && domainId.length() > 0) {
-      env.put(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN, domainId);
-    }
-    
-    // Add AppMaster.jar location to classpath
-    // At some point we should not be required to add
-    // the hadoop specific classpaths to the env.
-    // It should be provided out of the box.
-    // For now setting all required classpaths including
-    // the classpath to "." for the application jar
-    StringBuilder classPathEnv = new StringBuilder(Environment.CLASSPATH.$$())
-        .append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
-    for (String c : conf.getStrings(
-        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-        YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
-      classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-      classPathEnv.append(c.trim());
-    }
-    classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR).append(
-        "./log4j.properties");
-    
-    // add the runtime classpath needed for tests to work
-    if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
-      classPathEnv.append(':');
-      classPathEnv.append(System.getProperty("java.class.path"));
-    }
-    
-    env.put("CLASSPATH", classPathEnv.toString());
     
     // Set the necessary command to execute the application master
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
@@ -752,7 +618,112 @@ public class Client {
       ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
       amContainer.setTokens(fsTokens);
     }
+    
     return amContainer;
+  }
+  
+  private Map<String, String> setupLaunchEnv(ApplicationId appId, FileSystem fs)
+      throws IOException {
+    // The shell script has to be made available on the final container(s)
+    // where it will be executed.
+    // To do this, we need to first copy into the filesystem that is visible
+    // to the yarn framework.
+    // We do not need to set this as a local resource for the application
+    // master as the application master does not need it.
+    String hdfsShellScriptLocation = "";
+    long hdfsShellScriptLen = 0;
+    long hdfsShellScriptTimestamp = 0;
+    if (!shellScriptPath.isEmpty()) {
+      Path shellSrc = new Path(shellScriptPath);
+      String shellPathSuffix =
+          appName + "/" + appId.toString() + "/" + SCRIPT_PATH;
+      Path shellDst =
+          new Path(fs.getHomeDirectory(), shellPathSuffix);
+      fs.copyFromLocalFile(false, true, shellSrc, shellDst);
+      hdfsShellScriptLocation = shellDst.toUri().toString();
+      FileStatus shellFileStatus = fs.getFileStatus(shellDst);
+      hdfsShellScriptLen = shellFileStatus.getLen();
+      hdfsShellScriptTimestamp = shellFileStatus.getModificationTime();
+    }
+    
+    // Set the env variables to be setup in the env where the application master will be run
+    LOG.info("Set the environment for the application master");
+    Map<String, String> env = new HashMap<String, String>();
+    
+    // put location of shell script into env
+    // using the env info, the application master will create the correct local resource for the
+    // eventual containers that will be launched to execute the shell scripts
+    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION,
+        hdfsShellScriptLocation);
+    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTTIMESTAMP,
+        Long.toString(hdfsShellScriptTimestamp));
+    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLEN,
+        Long.toString(hdfsShellScriptLen));
+    if (domainId != null && domainId.length() > 0) {
+      env.put(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN, domainId);
+    }
+    
+    // Add AppMaster.jar location to classpath
+    // At some point we should not be required to add
+    // the hadoop specific classpaths to the env.
+    // It should be provided out of the box.
+    // For now setting all required classpaths including
+    // the classpath to "." for the application jar
+    StringBuilder classPathEnv = new StringBuilder(Environment.CLASSPATH.$$())
+        .append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
+    for (String c : conf.getStrings(
+        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+        YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
+      classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+      classPathEnv.append(c.trim());
+    }
+    classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR).append(
+        "./log4j.properties");
+    
+    // add the runtime classpath needed for tests to work
+    if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
+      classPathEnv.append(':');
+      classPathEnv.append(System.getProperty("java.class.path"));
+    }
+    
+    env.put("CLASSPATH", classPathEnv.toString());
+    
+    return env;
+  }
+  
+  private Map<String, LocalResource> prepareLocalResources(ApplicationId appId,
+      FileSystem fs)
+      throws IOException {
+    // set local resources for the application master
+    // local files or archives as needed
+    // In this scenario, the jar file for the application master is part of the local resources
+    Map<String, LocalResource> localResources =
+        new HashMap<>();
+    
+    LOG.info(
+        "Copy App Master jar from local filesystem and add to local environment");
+    // Copy the application master jar to the filesystem
+    // Create a local resource to point to the destination jar path
+    addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(),
+        localResources, null);
+    
+    // Set the log4j properties if needed
+    if (!log4jPropFile.isEmpty()) {
+      addToLocalResources(fs, log4jPropFile, log4jPath, appId.toString(),
+          localResources, null);
+    }
+    
+    if (!shellCommand.isEmpty()) {
+      addToLocalResources(fs, null, shellCommandPath, appId.toString(),
+          localResources, shellCommand);
+    }
+    
+    if (shellArgs.length > 0) {
+      addToLocalResources(fs, null, shellArgsPath, appId.toString(),
+          localResources, StringUtils.join(shellArgs, " "));
+    }
+    
+    return localResources;
   }
   
   private ApplicationSubmissionContext createApplicationSubmissionContext
