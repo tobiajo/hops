@@ -244,9 +244,7 @@ public class Client {
   /**
    */
   public Client(Configuration conf) throws Exception {
-    this(
-        "org.apache.hadoop.yarn.applications.distributedshell.ApplicationMaster",
-        conf);
+    this(ApplicationMaster.class.getCanonicalName(), conf);
   }
   
   Client(String appMasterMainClass, Configuration conf) {
