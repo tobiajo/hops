@@ -487,7 +487,7 @@ public class Client {
    * @throws YarnException
    * @throws IOException
    */
-  private boolean monitorApplication(ApplicationId appId)
+  public boolean monitorApplication(ApplicationId appId)
       throws YarnException, IOException {
     
     while (true) {
