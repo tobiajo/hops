@@ -62,9 +62,8 @@ public class ClusterSpecGenClient {
         .setTaskIndex(taskIndex)
         .build();
     RegisterContainerRequest request = RegisterContainerRequest.newBuilder().setContainer(container).build();
-    RegisterContainerReply reply;
     try {
-      reply = blockingStub.registerContainer(request);
+      blockingStub.registerContainer(request);
     } catch (StatusRuntimeException e) {
       LOG.warn("RPC failed: " + e.getStatus());
       return false;
