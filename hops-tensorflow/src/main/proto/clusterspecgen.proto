@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.hops.tensorflow.clusterspecgen";
+option java_outer_classname = "ClusterSpecGenProto";
+option objc_class_prefix = "CSG";
+
+package clusterspecgen;
+
+service ClusterSpecGen {
+    rpc RegisterContainer (RegisterContainerRequest) returns (RegisterContainerReply);
+    rpc GetClusterSpec (GetClusterSpecRequest) returns (GetClusterSpecReply);
+}
+
+message Container {
+    string containerId = 1;
+    string ip = 2;
+    string port = 3;
+    string jobName = 4;
+    string taskIndex = 5;
+}
+
+message RegisterContainerRequest {
+    Container container = 1;
+}
+
+message RegisterContainerReply {
+
+}
+
+message GetClusterSpecRequest {
+
+}
+
+message GetClusterSpecReply {
+    repeated Container containers = 1;
+}
