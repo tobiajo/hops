@@ -34,6 +34,12 @@ public class TestClusterSpecGen {
   
   @Before
   public void setup() {
+    Thread thread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+    
+      }
+    });
     server = new ClusterSpecGenServer(NUM_CONTAINERS);
     int port = INITIAL_PORT;
     while (port <= 65535) {
@@ -50,7 +56,9 @@ public class TestClusterSpecGen {
   @After
   public void tearDown() throws Exception {
     server.stop();
-    client.shutdown();
+    if (client != null) {
+      client.shutdown();
+    }
   }
   
   @Test

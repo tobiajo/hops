@@ -33,5 +33,5 @@ message GetClusterSpecRequest {
 }
 
 message GetClusterSpecReply {
-    repeated Container containers = 1;
+    map<string, Container> clusterSpec = 1;
 }

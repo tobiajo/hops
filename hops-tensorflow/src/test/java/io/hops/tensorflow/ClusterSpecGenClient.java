@@ -18,6 +18,7 @@
 package io.hops.tensorflow;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
@@ -71,7 +72,7 @@ public class ClusterSpecGenClient {
     return true;
   }
   
-  public ImmutableList<Container> getClusterSpec() {
+  public ImmutableMap<String, Container> getClusterSpec() {
     GetClusterSpecRequest request = GetClusterSpecRequest.newBuilder().build();
     GetClusterSpecReply reply;
     try {
@@ -80,6 +81,6 @@ public class ClusterSpecGenClient {
       LOG.warn("RPC failed: " + e.getStatus());
       return null;
     }
-    return ImmutableList.copyOf(reply.getContainersList());
+    return ImmutableMap.copyOf(reply.getClusterSpecMap());
   }
 }

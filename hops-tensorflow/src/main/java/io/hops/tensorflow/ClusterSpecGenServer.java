@@ -46,7 +46,7 @@ public class ClusterSpecGenServer {
   
   public void start(int port) throws IOException {
     if (server != null) {
-      return;
+      throw new IllegalStateException("Already started");
     }
     server = ServerBuilder.forPort(port)
         .addService(new ClusterSpecGenImpl(numContainers))
@@ -79,19 +79,21 @@ public class ClusterSpecGenServer {
   private static class ClusterSpecGenImpl extends ClusterSpecGenGrpc.ClusterSpecGenImplBase {
     
     int numContainers;
-    Map<String, Container> containers;
+    Map<String, Container> clusterSpec;
     
     ClusterSpecGenImpl(int numContainers) {
       this.numContainers = numContainers;
-      containers = new ConcurrentHashMap<>();
+      clusterSpec = new ConcurrentHashMap<>();
     }
     
     @Override
     public void registerContainer(RegisterContainerRequest request,
         StreamObserver<RegisterContainerReply> responseObserver) {
       Container container = request.getContainer();
-      containers.put(container.getContainerId(), container);
-      assert !(containers.size() > numContainers);
+      clusterSpec.put(container.getContainerId(), container);
+      if (clusterSpec.size() > numContainers) {
+        throw new IllegalStateException("clusterSpec size: " + clusterSpec.size());
+      }
       RegisterContainerReply reply = RegisterContainerReply.newBuilder().build();
       responseObserver.onNext(reply);
       responseObserver.onCompleted();
@@ -100,8 +102,8 @@ public class ClusterSpecGenServer {
     @Override
     public void getClusterSpec(GetClusterSpecRequest request, StreamObserver<GetClusterSpecReply> responseObserver) {
       GetClusterSpecReply reply;
-      if (containers.size() == numContainers) {
-        reply = GetClusterSpecReply.newBuilder().addAllContainers(containers.values()).build();
+      if (clusterSpec.size() == numContainers) {
+        reply = GetClusterSpecReply.newBuilder().putAllClusterSpec(clusterSpec).build();
       } else {
         reply = GetClusterSpecReply.newBuilder().build();
       }
