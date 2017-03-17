@@ -71,7 +71,7 @@ public class ClusterSpecGenClient {
     return true;
   }
   
-  public ImmutableMap<String, Container> getClusterSpec() {
+  public ImmutableList<Container> getClusterSpec() {
     GetClusterSpecRequest request = GetClusterSpecRequest.newBuilder().build();
     GetClusterSpecReply reply;
     try {
@@ -80,6 +80,6 @@ public class ClusterSpecGenClient {
       LOG.warn("RPC failed: " + e.getStatus());
       return null;
     }
-    return ImmutableMap.copyOf(reply.getClusterSpecMap());
+    return ImmutableList.copyOf(reply.getClusterSpecList());
   }
 }

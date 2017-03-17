@@ -111,7 +111,7 @@ public class ClusterSpecGenServer {
       LOG.debug("Received getClusterSpecRequest");
       GetClusterSpecReply reply;
       if (clusterSpec.size() == numContainers) {
-        reply = GetClusterSpecReply.newBuilder().putAllClusterSpec(clusterSpec).build();
+        reply = GetClusterSpecReply.newBuilder().addAllClusterSpec(clusterSpec.values()).build();
       } else {
         reply = GetClusterSpecReply.newBuilder().build();
       }
