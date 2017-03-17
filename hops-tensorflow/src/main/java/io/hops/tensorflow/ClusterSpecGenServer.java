@@ -96,6 +96,7 @@ public class ClusterSpecGenServer {
     public void registerContainer(RegisterContainerRequest request,
         StreamObserver<RegisterContainerReply> responseObserver) {
       Container container = request.getContainer();
+      LOG.debug("Received registerContainerRequest with containerId: " + container.getContainerId());
       clusterSpec.put(container.getContainerId(), container);
       if (clusterSpec.size() > numContainers) {
         throw new IllegalStateException("clusterSpec size: " + clusterSpec.size());
@@ -107,6 +108,7 @@ public class ClusterSpecGenServer {
     
     @Override
     public void getClusterSpec(GetClusterSpecRequest request, StreamObserver<GetClusterSpecReply> responseObserver) {
+      LOG.debug("Received getClusterSpecRequest");
       GetClusterSpecReply reply;
       if (clusterSpec.size() == numContainers) {
         reply = GetClusterSpecReply.newBuilder().putAllClusterSpec(clusterSpec).build();
