@@ -79,7 +79,6 @@ public class ClusterSpecGenServer {
   public static void main(String[] args) throws IOException, InterruptedException {
     ClusterSpecGenServer server = new ClusterSpecGenServer(3);
     server.start(50051);
-    System.out.println("Server started");
     server.blockUntilShutdown();
   }
   
