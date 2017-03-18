@@ -121,7 +121,7 @@ public class Client {
     Vector<CharSequence> vargs = new Vector<>();
     vargs.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     vargs.add("-Xmx" + clientConf.getInt(ClientConf.AM_MEMORY) + "m");
-    vargs.add("io.hops.tensorflow.ApplicationMaster");
+    vargs.add("old__io.hops.tensorflow.ApplicationMaster");
     if (clientConf.has(ClientConf.DEBUG)) {
       vargs.add("--debug");
     }

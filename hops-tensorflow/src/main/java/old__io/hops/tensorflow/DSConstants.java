@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.hops.tensorflow;
+package old__io.hops.tensorflow;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;

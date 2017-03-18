@@ -17,6 +17,8 @@
  */
 package io.hops.tensorflow;
 
+import io.hops.tensorflow.ClusterSpecGenServer;
+import old__io.hops.tensorflow.ClusterSpecGenClient;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

@@ -2376,7 +2376,7 @@ IPC Server handler 14 on 39799: responding to org.apache.hadoop.yarn.api.Applica
 IPC Client (1901648626) connection to localhost/127.0.0.1:39799 from tobias got value #4
 IPC Server handler 14 on 39799: responding to org.apache.hadoop.yarn.api.ApplicationClientProtocolPB.getNewApplication from 127.0.0.1:34204 Call#4 Retry#0 Wrote 50 bytes.
 Call: getNewApplication took 9ms
-Completed setting up app master command {{JAVA_HOME}}/bin/java -Xmx512m io.hops.tensorflow.ApplicationMaster 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr 
+Completed setting up app master command {{JAVA_HOME}}/bin/java -Xmx512m old__io.hops.tensorflow.ApplicationMaster 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr
 Max mem capabililty of resources in this cluster 8192
 Max virtual cores capabililty of resources in this cluster 32
 Submitting application application_1487619015136_0001 to ASM
@@ -2527,7 +2527,7 @@ PrivilegedAction as:appattempt_1487619015136_0001_000001 (auth:SIMPLE) from:org.
 Creating a HadoopYarnProtoRpc proxy for protocol interface org.apache.hadoop.yarn.api.ContainerManagementProtocol
 getting client out of cache: org.apache.hadoop.ipc.Client@102efc59
 Setting up container Container: [ContainerId: container_1487619015136_0001_01_000001, NodeId: localhost:36875, NodeHttpAddress: localhost:39831, Resource: <memory:1024, vCores:1>, Priority: 0, Token: Token { kind: ContainerToken, service: 127.0.0.1:36875 }, ] for AM appattempt_1487619015136_0001_000001
-Command to launch container container_1487619015136_0001_01_000001 : {{JAVA_HOME}}/bin/java -Xmx512m io.hops.tensorflow.ApplicationMaster 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr 
+Command to launch container container_1487619015136_0001_01_000001 : {{JAVA_HOME}}/bin/java -Xmx512m old__io.hops.tensorflow.ApplicationMaster 1><LOG_DIR>/stdout 2><LOG_DIR>/stderr
 Create AMRMToken for ApplicationAttempt: appattempt_1487619015136_0001_000001
 Creating password for appattempt_1487619015136_0001_000001
 The ping interval is 60000 ms.

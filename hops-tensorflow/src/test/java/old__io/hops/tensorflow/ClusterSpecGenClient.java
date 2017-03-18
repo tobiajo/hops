@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hops.tensorflow;
+package old__io.hops.tensorflow;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
@@ -26,7 +25,6 @@ import io.hops.tensorflow.clusterspecgen.ClusterSpecGenGrpc;
 import io.hops.tensorflow.clusterspecgen.Container;
 import io.hops.tensorflow.clusterspecgen.GetClusterSpecReply;
 import io.hops.tensorflow.clusterspecgen.GetClusterSpecRequest;
-import io.hops.tensorflow.clusterspecgen.RegisterContainerReply;
 import io.hops.tensorflow.clusterspecgen.RegisterContainerRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

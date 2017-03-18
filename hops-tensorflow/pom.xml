@@ -75,11 +75,11 @@
       <artifactId>grpc-stub</artifactId>
       <version>${grpc.version}</version>
     </dependency>
-    <dependency>
+    <!--<dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-nop</artifactId>
       <version>${slf4j.version}</version>
-    </dependency>
+    </dependency>-->
   </dependencies>
 
   <build>

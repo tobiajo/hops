@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hops.tensorflow;
+package old__io.hops.tensorflow;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

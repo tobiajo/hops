@@ -16,37 +16,60 @@
  * limitations under the License.
  */
 
-package io.hops.tensorflow;
+package old__io.hops.tensorflow;
+
+import java.nio.ByteBuffer;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 
-public class AppMasterSleeping extends ApplicationMaster {
+public class AppMasterContainerLaunchFail extends ApplicationMaster {
   
   private static final Log LOG =
-      LogFactory.getLog(AppMasterSleeping.class);
-  private static final long SLEEP_TIME = 5000;
+      LogFactory.getLog(AppMasterContainerLaunchFail.class);
+  
+  public AppMasterContainerLaunchFail() {
+    super();
+  }
+  
+  @Override
+  NMCallbackHandler createNMCallbackHandler() {
+    return new FailContainerLaunchNMCallbackHandler(this);
+  }
+  
+  class FailContainerLaunchNMCallbackHandler
+      extends ApplicationMaster.NMCallbackHandler {
+    
+    public FailContainerLaunchNMCallbackHandler(
+        ApplicationMaster applicationMaster) {
+      super(applicationMaster);
+    }
+    
+    @Override
+    public void onContainerStarted(ContainerId containerId,
+        Map<String, ByteBuffer> allServiceResponse) {
+      super.onStartContainerError(containerId,
+          new RuntimeException("Inject Container Launch failure"));
+    }
+    
+  }
   
   public static void main(String[] args) {
     boolean result = false;
     try {
-      AppMasterSleeping appMaster = new AppMasterSleeping();
+      AppMasterContainerLaunchFail appMaster =
+          new AppMasterContainerLaunchFail();
+      LOG.info("Initializing ApplicationMaster");
       boolean doRun = appMaster.init(args);
       if (!doRun) {
         System.exit(0);
       }
       appMaster.run();
-      if (appMaster.appAttemptID.getAttemptId() <= 2) {
-        try {
-          // sleep some time
-          Thread.sleep(SLEEP_TIME);
-        } catch (InterruptedException e) {
-        }
-        // fail the first am.
-        System.exit(100);
-      }
       result = appMaster.finish();
     } catch (Throwable t) {
+      LOG.fatal("Error running ApplicationMaster", t);
       System.exit(1);
     }
     if (result) {
@@ -57,4 +80,5 @@ public class AppMasterSleeping extends ApplicationMaster {
       System.exit(2);
     }
   }
+  
 }
