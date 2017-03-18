@@ -17,7 +17,6 @@
  */
 package io.hops.tensorflow;
 
-import io.hops.tensorflow.ClusterSpecGenServer;
 import old__io.hops.tensorflow.ClusterSpecGenClient;
 import org.junit.After;
 import org.junit.Assert;
@@ -36,12 +35,6 @@ public class TestClusterSpecGen {
   
   @Before
   public void setup() {
-    Thread thread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        
-      }
-    });
     server = new ClusterSpecGenServer(NUM_CONTAINERS);
     int port = INITIAL_PORT;
     while (port <= 65535) {
