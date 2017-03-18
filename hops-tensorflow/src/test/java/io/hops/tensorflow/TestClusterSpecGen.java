@@ -37,7 +37,7 @@ public class TestClusterSpecGen {
     Thread thread = new Thread(new Runnable() {
       @Override
       public void run() {
-    
+        
       }
     });
     server = new ClusterSpecGenServer(NUM_CONTAINERS);
@@ -63,11 +63,11 @@ public class TestClusterSpecGen {
   
   @Test
   public void ClusterSpecGenTest() {
-    Assert.assertTrue(client.registerContainer("A", "ip", "port", "jobName", "taskIndex"));
-    Assert.assertTrue(client.registerContainer("A", "ip", "port", "jobName", "taskIndex"));
+    Assert.assertTrue(client.registerContainer("A1", "C1", "(ip)", 1024, "ps", 0));
+    Assert.assertTrue(client.registerContainer("A1", "C1", "(ip)", 1024, "ps", 0));
     Assert.assertEquals(0, client.getClusterSpec().size());
-    Assert.assertTrue(client.registerContainer("B", "ip", "port", "jobName", "taskIndex"));
-    Assert.assertTrue(client.registerContainer("C", "ip", "port", "jobName", "taskIndex"));
+    Assert.assertTrue(client.registerContainer("A1", "C2", "(ip)", 1024, "worker", 0));
+    Assert.assertTrue(client.registerContainer("A1", "C3", "(ip)", 1024, "worker", 1));
     Assert.assertEquals(NUM_CONTAINERS, client.getClusterSpec().size());
   }
 }

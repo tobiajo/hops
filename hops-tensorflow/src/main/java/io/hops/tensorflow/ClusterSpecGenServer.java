@@ -30,6 +30,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -95,6 +99,7 @@ public class ClusterSpecGenServer {
     @Override
     public void registerContainer(RegisterContainerRequest request,
         StreamObserver<RegisterContainerReply> responseObserver) {
+      // TODO: check applicationID ?
       Container container = request.getContainer();
       LOG.debug("Received registerContainerRequest with containerId: " + container.getContainerId());
       clusterSpec.put(container.getContainerId(), container);
@@ -108,10 +113,18 @@ public class ClusterSpecGenServer {
     
     @Override
     public void getClusterSpec(GetClusterSpecRequest request, StreamObserver<GetClusterSpecReply> responseObserver) {
+      // TODO: check applicationID ?
       LOG.debug("Received getClusterSpecRequest");
       GetClusterSpecReply reply;
       if (clusterSpec.size() == numContainers) {
-        reply = GetClusterSpecReply.newBuilder().addAllClusterSpec(clusterSpec.values()).build();
+        List<Container> clusterSpecList = new ArrayList<>(clusterSpec.values());
+        Collections.sort(clusterSpecList, new Comparator<Container>() {
+          @Override
+          public int compare(Container c1, Container c2) {
+            return (c1.getTaskIndex() < c2.getTaskIndex() ? -1 : (c1.getTaskIndex() == c2.getTaskIndex() ? 0 : 1));
+          }
+        });
+        reply = GetClusterSpecReply.newBuilder().addAllClusterSpec(clusterSpecList).build();
       } else {
         reply = GetClusterSpecReply.newBuilder().build();
       }

@@ -13,11 +13,12 @@ service ClusterSpecGen {
 }
 
 message Container {
-    string containerId = 1;
-    string ip = 2;
-    string port = 3;
-    string jobName = 4;
-    string taskIndex = 5;
+    string applicationId = 1;
+    string containerId = 2;
+    string ip = 3;
+    int32 port = 4;
+    string jobName = 5;
+    int32 taskIndex = 6;
 }
 
 message RegisterContainerRequest {
