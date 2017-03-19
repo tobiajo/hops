@@ -20,6 +20,7 @@ package io.hops.tensorflow;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -73,10 +74,16 @@ public class TestYarnTF extends Cluster {
     boolean initSuccess = client.init(args);
     Assert.assertTrue(initSuccess);
     LOG.info("Running DS Client");
-    boolean result = client.run();
+    ApplicationId appId = client.submitApplication();
+    boolean result = client.monitorApplication(appId);
     LOG.info("Client run completed. Result=" + result);
     List<String> expectedContent = new ArrayList<String>();
     expectedContent.add("testDSShellWithShellScript");
     Util.verifyContainerLog(yarnCluster, 1, expectedContent, false, "");
+    Assert.assertTrue(Util.dumpAllRemoteContainersLogs(yarnCluster, appId));
+    Assert.assertFalse(Util.dumpAllAggregatedContainersLogs(yarnCluster, appId));;
+    Thread.sleep(5000);
+    Assert.assertFalse(Util.dumpAllRemoteContainersLogs(yarnCluster, appId));
+    Assert.assertTrue(Util.dumpAllAggregatedContainersLogs(yarnCluster, appId));
   }
 }

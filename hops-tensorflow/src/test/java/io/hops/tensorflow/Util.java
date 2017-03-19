@@ -18,6 +18,8 @@
 package io.hops.tensorflow;
 
 import org.apache.hadoop.util.Shell;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.client.cli.LogsCLI;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.junit.Assert;
@@ -100,5 +102,56 @@ public class Util {
       }
     }
     return numOfWords;
+  }
+  
+  public static boolean dumpAllAggregatedContainersLogs(MiniYARNCluster yarnCluster, ApplicationId appId)
+      throws Exception {
+    LogsCLI logDumper = new LogsCLI();
+    logDumper.setConf(yarnCluster.getConfig());
+    int resultCode = logDumper.run(new String[]{"-applicationId", appId.toString()});
+    return resultCode == 0;
+  }
+  
+  public static boolean dumpAllRemoteContainersLogs(MiniYARNCluster yarnCluster, ApplicationId appId) {
+    File logFolder = new File(yarnCluster
+            .getNodeManager(0)
+            .getConfig()
+            .get(YarnConfiguration.NM_LOG_DIRS, YarnConfiguration.DEFAULT_NM_LOG_DIRS));
+    File appFolder = new File(logFolder, appId.toString());
+    File[] containerFolders = appFolder.listFiles();
+    
+    if (containerFolders == null) {
+      System.out.println(appFolder + " does not have any log files.");
+      return false;
+    }
+    
+    for (File containerFolder : appFolder.listFiles()) {
+      System.out.println("\n\nContainer: " + containerFolder.getName());
+      System.out.println(
+          "======================================================================");
+      for (File logFile : containerFolder.listFiles()) {
+        System.out.println("LogType:" + logFile.getName());
+        BufferedReader br = null;
+        try {
+          String sCurrentLine;
+          br = new BufferedReader(new FileReader(logFile));
+          while ((sCurrentLine = br.readLine()) != null) {
+            System.out.println(sCurrentLine);
+          }
+        } catch (IOException e) {
+          e.printStackTrace();
+        } finally {
+          try {
+            if (br != null) {
+              br.close();
+            }
+          } catch (IOException ex) {
+            ex.printStackTrace();
+          }
+        }
+        System.out.println("End of LogType:" + logFile.getName() + "\n");
+      }
+    }
+    return true;
   }
 }
