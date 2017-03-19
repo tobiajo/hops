@@ -18,6 +18,7 @@
 
 package io.hops.tensorflow;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -437,6 +438,13 @@ public class Client {
    * @throws YarnException
    */
   public boolean run() throws IOException, YarnException {
+    // Monitor the application
+    return monitorApplication(submitApplication());
+  }
+  
+  @VisibleForTesting
+  @InterfaceAudience.Private
+  public ApplicationId submitApplication() throws IOException, YarnException {
 
     LOG.info("Running Client");
     yarnClient.start();
@@ -709,8 +717,7 @@ public class Client {
     // Try submitting the same request again
     // app submission failure?
 
-    // Monitor the application
-    return monitorApplication(appId);
+    return appId;
 
   }
 
@@ -722,7 +729,9 @@ public class Client {
    * @throws YarnException
    * @throws IOException
    */
-  private boolean monitorApplication(ApplicationId appId)
+  @VisibleForTesting
+  @InterfaceAudience.Private
+  public boolean monitorApplication(ApplicationId appId)
       throws YarnException, IOException {
 
     while (true) {
@@ -787,7 +796,9 @@ public class Client {
    * @throws YarnException
    * @throws IOException
    */
-  private void forceKillApplication(ApplicationId appId)
+  @VisibleForTesting
+  @InterfaceAudience.Private
+  public void forceKillApplication(ApplicationId appId)
       throws YarnException, IOException {
     // TODO clarify whether multiple jobs with the same app id can be submitted and be running at 
     // the same time. 
