@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Util {
+public class TestUtils {
   
   public static int verifyContainerLog(MiniYARNCluster yarnCluster, int containerNum,
       List<String> expectedContent, boolean count, String expectedWord) {

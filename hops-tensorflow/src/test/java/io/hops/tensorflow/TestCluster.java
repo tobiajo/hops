@@ -36,10 +36,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
 
-public abstract class Cluster {
+public abstract class TestCluster {
   
   private static final Log LOG =
-      LogFactory.getLog(Cluster.class);
+      LogFactory.getLog(TestCluster.class);
   
   protected MiniYARNCluster yarnCluster = null;
   protected YarnConfiguration conf = null;
@@ -67,7 +67,7 @@ public abstract class Cluster {
     
     if (yarnCluster == null) {
       yarnCluster =
-          new MiniYARNCluster(Cluster.class.getSimpleName(), 1,
+          new MiniYARNCluster(TestCluster.class.getSimpleName(), 1,
               numNodeManager, 1, 1);
       yarnCluster.init(conf);
       

@@ -198,9 +198,10 @@ public class Client {
 
   public static final String SCRIPT_PATH = "ExecScript";
   
-  // Added your YarnTF
+  // Added for YarnTF
   public static final String AM_JAR_PATH = "AppMaster.jar";
-  public static final String YARNTF_STAGING = ".yarntfStaging";
+  public static final String DIST_CACHE_PATH = "distCacheList.ser";
+  public static final String YARNTF_STAGING = ".YarnTF";
   private CommandLine cliParser;
   
   /**
@@ -777,37 +778,37 @@ public class Client {
   
     addResource(fs, appId, cliParser.getOptionValue(JAR), null, AM_JAR_PATH, null, localResources);
     
-    DistributedCache distCache = populateDistributedCache(fs, appId);
+    DistributedCacheList dcl = populateDistributedCache(fs, appId);
     
-    // copy distCache to HDFS and add to localResources
+    // write distCacheList to HDFS and add to localResources
     Path baseDir = new Path(fs.getHomeDirectory(), YARNTF_STAGING + "/" +  appId.toString());
-    Path distCachePath = new Path(baseDir, "distCache.ser");
-    FSDataOutputStream out = fs.create(distCachePath);
-    out.write(SerializationUtils.serialize(distCache));
-    out.close();
-    FileStatus distCacheStatus = fs.getFileStatus(distCachePath);
+    Path dclPath = new Path(baseDir, DIST_CACHE_PATH);
+    FSDataOutputStream ostream = fs.create(dclPath);
+    ostream.write(SerializationUtils.serialize(dcl));
+    ostream.close();
+    FileStatus dclStatus = fs.getFileStatus(dclPath);
     LocalResource distCacheResource = LocalResource.newInstance(
-        ConverterUtils.getYarnUrlFromURI(distCachePath.toUri()),
+        ConverterUtils.getYarnUrlFromURI(dclPath.toUri()),
         LocalResourceType.FILE,
         LocalResourceVisibility.APPLICATION,
-        distCacheStatus.getLen(),
-        distCacheStatus.getModificationTime());
-    localResources.put("distCache.ser", distCacheResource);
+        dclStatus.getLen(),
+        dclStatus.getModificationTime());
+    localResources.put(DIST_CACHE_PATH, distCacheResource);
     
     return localResources;
   }
   
-  private DistributedCache populateDistributedCache(FileSystem fs, ApplicationId appId) throws IOException {
-    DistributedCache distCache = new DistributedCache();
+  private DistributedCacheList populateDistributedCache(FileSystem fs, ApplicationId appId) throws IOException {
+    DistributedCacheList dcl = new DistributedCacheList();
     
     if (cliParser.hasOption(MAIN)) {
-      addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCache, null);
+      addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, dcl, null);
     }
-    return distCache;
+    return dcl;
   }
   
   private void addResource(FileSystem fs, ApplicationId appId, String srcPath, String dstDir, String dstName,
-      DistributedCache distCache, Map<String, LocalResource> localResources) throws
+      DistributedCacheList distCache, Map<String, LocalResource> localResources) throws
       IOException {
     Path src = new Path(srcPath);
     
@@ -826,7 +827,7 @@ public class Client {
     FileStatus dstStatus = fs.getFileStatus(dst);
     
     if (distCache !=  null) {
-      distCache.add(new DistributedCache.Entry(dst.toUri(), dstStatus.getLen(), dstStatus.getModificationTime()));
+      distCache.add(new DistributedCacheList.Entry(dst.toUri(), dstStatus.getLen(), dstStatus.getModificationTime()));
     }
     
     if (localResources != null) {

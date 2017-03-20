@@ -29,7 +29,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestYarnTF extends Cluster {
+public class TestYarnTF extends TestCluster {
   
   private static final Log LOG = LogFactory.getLog(TestYarnTF.class);
   
@@ -80,11 +80,11 @@ public class TestYarnTF extends Cluster {
     LOG.info("Client run completed. Result=" + result);
     List<String> expectedContent = new ArrayList<String>();
     expectedContent.add("testDSShellWithShellScript");
-    Util.verifyContainerLog(yarnCluster, 1, expectedContent, false, "");
-    Assert.assertTrue(Util.dumpAllRemoteContainersLogs(yarnCluster, appId));
-    Assert.assertFalse(Util.dumpAllAggregatedContainersLogs(yarnCluster, appId));;
+    TestUtils.verifyContainerLog(yarnCluster, 1, expectedContent, false, "");
+    Assert.assertTrue(TestUtils.dumpAllRemoteContainersLogs(yarnCluster, appId));
+    Assert.assertFalse(TestUtils.dumpAllAggregatedContainersLogs(yarnCluster, appId));;
     Thread.sleep(5000);
-    Assert.assertFalse(Util.dumpAllRemoteContainersLogs(yarnCluster, appId));
-    Assert.assertTrue(Util.dumpAllAggregatedContainersLogs(yarnCluster, appId));
+    Assert.assertFalse(TestUtils.dumpAllRemoteContainersLogs(yarnCluster, appId));
+    Assert.assertTrue(TestUtils.dumpAllAggregatedContainersLogs(yarnCluster, appId));
   }
 }
