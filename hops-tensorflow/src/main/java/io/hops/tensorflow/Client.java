@@ -836,7 +836,7 @@ public class Client {
           LocalResourceVisibility.APPLICATION,
           dstStatus.getLen(),
           dstStatus.getModificationTime());
-      localResources.put(dst.getName(), resource);
+      localResources.put(dstPath, resource);
     }
   }
   
