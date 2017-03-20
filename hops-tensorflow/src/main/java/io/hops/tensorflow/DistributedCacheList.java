@@ -48,4 +48,18 @@ public class DistributedCacheList implements Serializable {
   public int size() {
     return files.size();
   }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    for (Entry e : files) {
+      sb.append("(" + e.uri + ", " + e.size + ", " + e.timestamp + "),\n");
+    }
+    if (files.size() > 0) {
+      sb.setLength(sb.length() - 2);
+    }
+    sb.append("]");
+    return sb.toString();
+  }
 }

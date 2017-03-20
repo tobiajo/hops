@@ -84,6 +84,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.StringReader;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.URI;
@@ -275,6 +276,9 @@ public class ApplicationMaster {
 
   private final String linux_bash_command = "bash";
   private final String windows_command = "cmd /c";
+  
+  // YarnTF stuff
+  private DistributedCacheList distCacheList;
 
   /**
    * @param args Command line args
@@ -518,7 +522,17 @@ public class ApplicationMaster {
   @SuppressWarnings({ "unchecked" })
   public void run() throws YarnException, IOException, InterruptedException {
     LOG.info("Starting ApplicationMaster");
-
+  
+    FileInputStream fin = new FileInputStream(Client.DIST_CACHE_PATH);
+    ObjectInputStream ois = new ObjectInputStream(fin);
+    try {
+      distCacheList = (DistributedCacheList) ois.readObject();
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();
+    }
+    
+    LOG.info("Loaded distribute cache list: " + distCacheList.toString());
+  
     // Note: Credentials, Token, UserGroupInformation, DataOutputBuffer class
     // are marked as LimitedPrivate
     Credentials credentials =
