@@ -20,10 +20,12 @@ package io.hops.tensorflow;
 public class ClientArguments {
   
   public static final String JAR = "jar";
+  public static final String AM_MEMORY = "master_memory";
+  public static final String AM_VCORES = "master_vcores";
   
-  public static final String NAME = "name";
+  public static final String NAME = "appname";
   public static final String MAIN = "main";
-  public static final String ARG = "arg";
+  public static final String ARG = "shell_args";
   public static final String PY_FILES = "py_files";
   public static final String FILES = "files";
   

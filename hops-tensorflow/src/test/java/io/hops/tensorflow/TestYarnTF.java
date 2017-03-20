@@ -34,7 +34,7 @@ public class TestYarnTF extends TestCluster {
   private static final Log LOG = LogFactory.getLog(TestYarnTF.class);
   
   @Test(timeout=90000)
-  public void testDSShellWithShellScript() throws Exception {
+  public void testYarnTFWithShellScript() throws Exception {
     final File basedir = new File("target", TestYarnTF.class.getName());
     final File tmpDir = new File(basedir, "tmpDir");
     tmpDir.mkdirs();
@@ -47,7 +47,7 @@ public class TestYarnTF extends TestCluster {
     }
     PrintWriter fileWriter = new PrintWriter(customShellScript);
     // set the output to DEBUG level
-    fileWriter.write("tree");
+    fileWriter.write("echo \"amazing output: $1 $2\"");
     fileWriter.close();
     System.out.println(customShellScript.getAbsolutePath());
     String[] args = {
@@ -66,7 +66,11 @@ public class TestYarnTF extends TestCluster {
         "--container_vcores",
         "1",
         "--main",
-        customShellScript.getAbsolutePath()
+        customShellScript.getAbsolutePath(),
+        "--shell_args",
+        "hello",
+        "--shell_args",
+        "world"
     };
     
     LOG.info("Initializing DS Client");

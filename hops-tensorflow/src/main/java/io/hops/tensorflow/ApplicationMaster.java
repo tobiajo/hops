@@ -970,7 +970,6 @@ public class ApplicationMaster {
             entry.size,
             entry.timestamp);
         localResources.put(entry.relativePath, distRsrc);
-        System.out.println("QWERTY: " + entry.uri.getPath());
       }
 
       // The container for the eventual shell commands needs its own local

@@ -85,29 +85,29 @@ import static io.hops.tensorflow.ClientArguments.*;
 
 /**
  * Client for Distributed Shell application submission to YARN.
- * 
+ *
  * <p> The distributed shell client allows an application master to be launched that in turn would run 
  * the provided shell command on a set of containers. </p>
- * 
+ *
  * <p>This client is meant to act as an example on how to write yarn-based applications. </p>
- * 
+ *
  * <p> To submit an application, a client first needs to connect to the <code>ResourceManager</code> 
- * aka ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The {@link ApplicationClientProtocol} 
+ * aka ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The {@link ApplicationClientProtocol}
  * provides a way for the client to get access to cluster information and to request for a
  * new {@link ApplicationId}. <p>
- * 
+ *
  * <p> For the actual job submission, the client first has to create an {@link ApplicationSubmissionContext}. 
- * The {@link ApplicationSubmissionContext} defines the application details such as {@link ApplicationId} 
+ * The {@link ApplicationSubmissionContext} defines the application details such as {@link ApplicationId}
  * and application name, the priority assigned to the application and the queue
  * to which this application needs to be assigned. In addition to this, the {@link ApplicationSubmissionContext}
  * also defines the {@link ContainerLaunchContext} which describes the <code>Container</code> with which 
  * the {@link ApplicationMaster} is launched. </p>
- * 
+ *
  * <p> The {@link ContainerLaunchContext} in this scenario defines the resources to be allocated for the 
  * {@link ApplicationMaster}'s container, the local resources (jars, configuration files) to be made available 
  * and the environment to be set for the {@link ApplicationMaster} and the commands to be executed to run the 
  * {@link ApplicationMaster}. <p>
- * 
+ *
  * <p> Using the {@link ApplicationSubmissionContext}, the client submits the application to the 
  * <code>ResourceManager</code> and then monitors the application by requesting the <code>ResourceManager</code> 
  * for an {@link ApplicationReport} at regular time intervals. In case of the application taking too long, the client 
@@ -130,19 +130,19 @@ public class Client {
   // Queue for App master
   private String amQueue = "";
   // Amt. of memory resource to request for to run the App Master
-  private int amMemory = 10; 
+  private int amMemory = 10;
   // Amt. of virtual core resource to request for to run the App Master
   private int amVCores = 1;
 
   // Application master jar file
-  private String appMasterJar = ""; 
+  private String appMasterJar = "";
   // Main class to invoke application master
   private final String appMasterMainClass;
 
   // Shell command to be executed 
-  private String shellCommand = ""; 
+  private String shellCommand = "";
   // Location of shell script 
-  private String shellScriptPath = ""; 
+  private String shellScriptPath = "";
   // Args to be passed to the shell command
   private String[] shellArgs = new String[] {};
   // Env variables to be setup for the shell command 
@@ -151,7 +151,7 @@ public class Client {
   private int shellCmdPriority = 0;
 
   // Amt of memory to request for container in which shell script will be executed
-  private int containerMemory = 10; 
+  private int containerMemory = 10;
   // Amt. of virtual cores to request for container in which shell script will be executed
   private int containerVirtualCores = 1;
   // No. of containers in which the shell script needs to be executed
@@ -160,7 +160,7 @@ public class Client {
 
   // log4j.properties file 
   // if available, add to local resources and set into classpath 
-  private String log4jPropFile = "";	
+  private String log4jPropFile = "";
 
   // Start time for client
   private final long clientStartTime = System.currentTimeMillis();
@@ -229,8 +229,8 @@ public class Client {
     }
     if (result) {
       LOG.info("Application completed successfully");
-      System.exit(0);			
-    } 
+      System.exit(0);
+    }
     LOG.error("Application failed to complete successfully");
     System.exit(2);
   }
@@ -247,26 +247,16 @@ public class Client {
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(conf);
     opts = new Options();
-    opts.addOption("appname", true, "Application Name. Default value - DistributedShell");
     opts.addOption("priority", true, "Application Priority. Default 0");
     opts.addOption("queue", true, "RM Queue in which this application is to be submitted");
     opts.addOption("timeout", true, "Application timeout in milliseconds");
-    opts.addOption("master_memory", true, "Amount of memory in MB to be requested to run the application master");
-    opts.addOption("master_vcores", true, "Amount of virtual cores to be requested to run the application master");
-    opts.addOption("jar", true, "Jar file containing the application master");
     opts.addOption("shell_command", true, "Shell command to be executed by " +
         "the Application Master. Can only specify either --shell_command " +
         "or --shell_script");
     opts.addOption("shell_script", true, "Location of the shell script to be " +
         "executed. Can only specify either --shell_command or --shell_script");
-    opts.addOption("shell_args", true, "Command line args for the shell script." +
-        "Multiple args can be separated by empty space.");
-    opts.getOption("shell_args").setArgs(Option.UNLIMITED_VALUES);
     opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
     opts.addOption("shell_cmd_priority", true, "Priority for the shell command containers");
-    opts.addOption("container_memory", true, "Amount of memory in MB to be requested to run the shell command");
-    opts.addOption("container_vcores", true, "Amount of virtual cores to be requested to run the shell command");
-    opts.addOption("num_containers", true, "No. of containers on which the shell command needs to be executed");
     opts.addOption("log_properties", true, "log4j.properties file");
     opts.addOption("keep_containers_across_application_attempts", false,
       "Flag to indicate whether to keep containers across application attempts." +
@@ -297,9 +287,18 @@ public class Client {
             + " default node_label_expression of queue will be used.");
     
     // YarnTF options
+    opts.addOption(JAR, true, "Jar file containing the application master");
+    opts.addOption(AM_MEMORY, true, "Amount of memory in MB to be requested to run the application master");
+    opts.addOption(AM_VCORES, true, "Amount of virtual cores to be requested to run the application master");
+  
+    opts.addOption("container_memory", true, "Amount of memory in MB to be requested to run the shell command");
+    opts.addOption("container_vcores", true, "Amount of virtual cores to be requested to run the shell command");
+    opts.addOption("num_containers", true, "No. of containers on which the shell command needs to be executed");
+    
     opts.addOption(MAIN, true, "Your application's main Python file.");
     opts.addOption(ARG, true, "Argument to be passed to your application's main class.\n" +
         "Multiple invocations are possible, each will be passed in order.");
+    opts.getOption(ARG).setArgs(Option.UNLIMITED_VALUES);
     opts.addOption(NAME, true, "A name of your application.");
     opts.addOption(PY_FILES, true, "Comma-separated list of .zip, .egg, or .py files to place on the PYTHONPATH for Python apps.");
     opts.addOption(FILES, true, "Comma-separated list of files to be placed in the working directory of each node.");
@@ -364,7 +363,7 @@ public class Client {
     appName = cliParser.getOptionValue("appname", "DistributedShell");
     amPriority = Integer.parseInt(cliParser.getOptionValue("priority", "0"));
     amQueue = cliParser.getOptionValue("queue", "default");
-    amMemory = Integer.parseInt(cliParser.getOptionValue("master_memory", "10"));		
+    amMemory = Integer.parseInt(cliParser.getOptionValue("master_memory", "10"));
     amVCores = Integer.parseInt(cliParser.getOptionValue("master_vcores", "1"));
 
     if (amMemory < 0) {
@@ -378,7 +377,7 @@ public class Client {
 
     if (!cliParser.hasOption("jar")) {
       throw new IllegalArgumentException("No jar file specified for application master");
-    }		
+    }
 
     appMasterJar = cliParser.getOptionValue("jar");
 
@@ -396,7 +395,7 @@ public class Client {
     if (cliParser.hasOption("shell_args")) {
       shellArgs = cliParser.getOptionValues("shell_args");
     }
-    if (cliParser.hasOption("shell_env")) { 
+    if (cliParser.hasOption("shell_env")) {
       String envs[] = cliParser.getOptionValues("shell_env");
       for (String env : envs) {
         env = env.trim();
@@ -885,29 +884,29 @@ public class Client {
       if (YarnApplicationState.FINISHED == state) {
         if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
           LOG.info("Application has completed successfully. Breaking monitoring loop");
-          return true;        
+          return true;
         }
         else {
           LOG.info("Application did finished unsuccessfully."
               + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
               + ". Breaking monitoring loop");
           return false;
-        }			  
+        }
       }
-      else if (YarnApplicationState.KILLED == state	
+      else if (YarnApplicationState.KILLED == state
           || YarnApplicationState.FAILED == state) {
         LOG.info("Application did not finish."
             + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
             + ". Breaking monitoring loop");
         return false;
-      }			
+      }
 
       if (System.currentTimeMillis() > (clientStartTime + clientTimeout)) {
         LOG.info("Reached client specified timeout for application. Killing application");
         forceKillApplication(appId);
-        return false;				
+        return false;
       }
-    }			
+    }
 
   }
 
@@ -927,7 +926,7 @@ public class Client {
 
     // Response can be ignored as it is non-null on success or 
     // throws an exception in case of failures
-    yarnClient.killApplication(appId);	
+    yarnClient.killApplication(appId);
   }
 
   private void addToLocalResources(FileSystem fs, String fileSrcPath,
