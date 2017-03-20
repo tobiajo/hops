@@ -827,7 +827,8 @@ public class Client {
     FileStatus dstStatus = fs.getFileStatus(dst);
     
     if (distCache !=  null) {
-      distCache.add(new DistributedCacheList.Entry(dst.toUri(), dstStatus.getLen(), dstStatus.getModificationTime()));
+      distCache.add(new DistributedCacheList.Entry(
+          dstPath, dst.toUri(), dstStatus.getLen(), dstStatus.getModificationTime()));
     }
     
     if (localResources != null) {

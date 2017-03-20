@@ -47,7 +47,7 @@ public class TestYarnTF extends TestCluster {
     }
     PrintWriter fileWriter = new PrintWriter(customShellScript);
     // set the output to DEBUG level
-    fileWriter.write("echo testDSShellWithShellScript");
+    fileWriter.write("tree");
     fileWriter.close();
     System.out.println(customShellScript.getAbsolutePath());
     String[] args = {
@@ -78,9 +78,9 @@ public class TestYarnTF extends TestCluster {
     ApplicationId appId = client.submitApplication();
     boolean result = client.monitorApplication(appId);
     LOG.info("Client run completed. Result=" + result);
-    List<String> expectedContent = new ArrayList<String>();
-    expectedContent.add("testDSShellWithShellScript");
-    TestUtils.verifyContainerLog(yarnCluster, 1, expectedContent, false, "");
+    //List<String> expectedContent = new ArrayList<String>();
+    //expectedContent.add("testDSShellWithShellScript");
+    //TestUtils.verifyContainerLog(yarnCluster, 1, expectedContent, false, "");
     Assert.assertTrue(TestUtils.dumpAllRemoteContainersLogs(yarnCluster, appId));
     Assert.assertFalse(TestUtils.dumpAllAggregatedContainersLogs(yarnCluster, appId));;
     Thread.sleep(5000);

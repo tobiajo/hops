@@ -24,11 +24,13 @@ import java.util.ArrayList;
 public class DistributedCacheList implements Serializable {
   
   public static class Entry implements Serializable {
+    public final String relativePath;
     public final URI uri;
     public final long size;
     public final long timestamp;
     
-    public Entry(URI uri, long size, long timestamp) {
+    public Entry(String relativePath, URI uri, long size, long timestamp) {
+      this.relativePath = relativePath;
       this.uri = uri;
       this.size = size;
       this.timestamp = timestamp;
@@ -54,7 +56,7 @@ public class DistributedCacheList implements Serializable {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
     for (Entry e : files) {
-      sb.append("(" + e.uri + ", " + e.size + ", " + e.timestamp + "),\n");
+      sb.append("(" + e.relativePath + ", " + e.uri + ", " + e.size + ", " + e.timestamp + "),\n");
     }
     if (files.size() > 0) {
       sb.setLength(sb.length() - 2);

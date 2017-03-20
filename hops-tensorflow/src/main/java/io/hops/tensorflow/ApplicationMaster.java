@@ -960,6 +960,18 @@ public class ApplicationMaster {
 
       // Set the local resources
       Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+      
+      for (int i = 0; i < distCacheList.size(); i++) {
+        DistributedCacheList.Entry entry = distCacheList.get(i);
+        LocalResource distRsrc = LocalResource.newInstance(
+            ConverterUtils.getYarnUrlFromURI(entry.uri),
+            LocalResourceType.FILE,
+            LocalResourceVisibility.APPLICATION,
+            entry.size,
+            entry.timestamp);
+        localResources.put(entry.relativePath, distRsrc);
+        System.out.println("QWERTY: " + entry.uri.getPath());
+      }
 
       // The container for the eventual shell commands needs its own local
       // resources too.
