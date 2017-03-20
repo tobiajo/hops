@@ -799,12 +799,12 @@ public class Client {
   }
   
   private DistributedCacheList populateDistributedCache(FileSystem fs, ApplicationId appId) throws IOException {
-    DistributedCacheList dcl = new DistributedCacheList();
+    DistributedCacheList distCacheList = new DistributedCacheList();
     
     if (cliParser.hasOption(MAIN)) {
-      addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, dcl, null);
+      addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCacheList, null);
     }
-    return dcl;
+    return distCacheList;
   }
   
   private void addResource(FileSystem fs, ApplicationId appId, String srcPath, String dstDir, String dstName,
