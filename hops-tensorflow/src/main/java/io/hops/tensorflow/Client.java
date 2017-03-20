@@ -80,6 +80,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import static io.hops.tensorflow.ClientArguments.*;
+
 /**
  * Client for Distributed Shell application submission to YARN.
  * 
@@ -286,6 +288,19 @@ public class Client {
             + " will be allocated, \"\" means containers"
             + " can be allocated anywhere, if you don't specify the option,"
             + " default node_label_expression of queue will be used.");
+    
+    // YarnTF options
+    opts.addOption(MAIN, true, "Your application's main Python file.");
+    opts.addOption(ARG, true, "Argument to be passed to your application's main class.\n" +
+        "Multiple invocations are possible, each will be passed in order.");
+    opts.addOption(NAME, true, "A name of your application.");
+    opts.addOption(PY_FILES, true, "Comma-separated list of .zip, .egg, or .py files to place on the PYTHONPATH for Python apps.");
+    opts.addOption(FILES, true, "Comma-separated list of files to be placed in the working directory of each node.");
+    opts.addOption(WORKER, true, "Number of workers");
+    opts.addOption(PS, true, "Number of parameter servers");
+    opts.addOption(GPU, false, "Enable GPU");
+    opts.addOption(RDMA, false, "Enable RDMA");
+    opts.addOption(TENSORBOARD, false, "Enable TensorBoard");
   }
 
   /**

@@ -35,8 +35,7 @@ public class TestYarnTF extends Cluster {
   
   @Test(timeout=90000)
   public void testDSShellWithShellScript() throws Exception {
-    final File basedir =
-        new File("target", TestDistributedShell.class.getName());
+    final File basedir = new File("target", TestYarnTF.class.getName());
     final File tmpDir = new File(basedir, "tmpDir");
     tmpDir.mkdirs();
     final File customShellScript = new File(tmpDir, "custom_script.sh");
