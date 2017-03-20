@@ -490,72 +490,14 @@ public class Client {
     
     
 
-    // set local resources for the application master
-    // local files or archives as needed
-    // In this scenario, the jar file for the application master is part of the local resources			
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+    			
 
-    LOG.info("Copy App Master jar from local filesystem and add to local environment");
-    // Copy the application master jar to the filesystem 
-    // Create a local resource to point to the destination jar path 
-    FileSystem fs = FileSystem.get(conf);
-    addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(),
-        localResources, null);
+    
 
-    // Set the log4j properties if needed 
-    if (!log4jPropFile.isEmpty()) {
-      addToLocalResources(fs, log4jPropFile, log4jPath, appId.toString(),
-          localResources, null);
-    }			
+    
 
-    // The shell script has to be made available on the final container(s)
-    // where it will be executed. 
-    // To do this, we need to first copy into the filesystem that is visible 
-    // to the yarn framework. 
-    // We do not need to set this as a local resource for the application 
-    // master as the application master does not need it. 		
-    String hdfsShellScriptLocation = ""; 
-    long hdfsShellScriptLen = 0;
-    long hdfsShellScriptTimestamp = 0;
-    if (!shellScriptPath.isEmpty()) {
-      Path shellSrc = new Path(shellScriptPath);
-      String shellPathSuffix =
-          appName + "/" + appId.toString() + "/" + SCRIPT_PATH;
-      Path shellDst =
-          new Path(fs.getHomeDirectory(), shellPathSuffix);
-      fs.copyFromLocalFile(false, true, shellSrc, shellDst);
-      hdfsShellScriptLocation = shellDst.toUri().toString(); 
-      FileStatus shellFileStatus = fs.getFileStatus(shellDst);
-      hdfsShellScriptLen = shellFileStatus.getLen();
-      hdfsShellScriptTimestamp = shellFileStatus.getModificationTime();
-    }
-
-    if (!shellCommand.isEmpty()) {
-      addToLocalResources(fs, null, shellCommandPath, appId.toString(),
-          localResources, shellCommand);
-    }
-
-    if (shellArgs.length > 0) {
-      addToLocalResources(fs, null, shellArgsPath, appId.toString(),
-          localResources, StringUtils.join(shellArgs, " "));
-    }
-
-    // Set the necessary security tokens as needed
-    //amContainer.setContainerTokens(containerToken);
-
-    // Set the env variables to be setup in the env where the application master will be run
-    LOG.info("Set the environment for the application master");
-    Map<String, String> env = new HashMap<String, String>();
-
-    // put location of shell script into env
-    // using the env info, the application master will create the correct local resource for the 
-    // eventual containers that will be launched to execute the shell scripts
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION, hdfsShellScriptLocation);
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTTIMESTAMP, Long.toString(hdfsShellScriptTimestamp));
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLEN, Long.toString(hdfsShellScriptLen));
-    if (domainId != null && domainId.length() > 0) {
-      env.put(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN, domainId);
-    }
+    
+    
 
     // Add AppMaster.jar location to classpath 		
     // At some point we should not be required to add 
@@ -748,15 +690,83 @@ public class Client {
   }
   
   private ContainerLaunchContext createContainerLaunchContext(GetNewApplicationResponse appResponse) {
+    // Set the necessary security tokens as needed
+    //amContainer.setContainerTokens(containerToken);
+  
+  
     return null;
   }
   
   private Map<String, String> setupLaunchEnv() {
+    // The shell script has to be made available on the final container(s)
+    // where it will be executed.
+    // To do this, we need to first copy into the filesystem that is visible
+    // to the yarn framework.
+    // We do not need to set this as a local resource for the application
+    // master as the application master does not need it.
+    String hdfsShellScriptLocation = "";
+    long hdfsShellScriptLen = 0;
+    long hdfsShellScriptTimestamp = 0;
+    if (!shellScriptPath.isEmpty()) {
+      Path shellSrc = new Path(shellScriptPath);
+      String shellPathSuffix =
+          appName + "/" + appId.toString() + "/" + SCRIPT_PATH;
+      Path shellDst =
+          new Path(fs.getHomeDirectory(), shellPathSuffix);
+      fs.copyFromLocalFile(false, true, shellSrc, shellDst);
+      hdfsShellScriptLocation = shellDst.toUri().toString();
+      FileStatus shellFileStatus = fs.getFileStatus(shellDst);
+      hdfsShellScriptLen = shellFileStatus.getLen();
+      hdfsShellScriptTimestamp = shellFileStatus.getModificationTime();
+    }
+  
+    // Set the env variables to be setup in the env where the application master will be run
+    LOG.info("Set the environment for the application master");
+    Map<String, String> env = new HashMap<String, String>();
+  
+    // put location of shell script into env
+    // using the env info, the application master will create the correct local resource for the
+    // eventual containers that will be launched to execute the shell scripts
+    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION, hdfsShellScriptLocation);
+    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTTIMESTAMP, Long.toString(hdfsShellScriptTimestamp));
+    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLEN, Long.toString(hdfsShellScriptLen));
+    if (domainId != null && domainId.length() > 0) {
+      env.put(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN, domainId);
+    }
+    
     return null;
   }
   
   private Map<String, LocalResource> prepareLocalResources() {
-    return null;
+    // set local resources for the application master
+    // local files or archives as needed
+    // In this scenario, the jar file for the application master is part of the local resources
+    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+  
+    LOG.info("Copy App Master jar from local filesystem and add to local environment");
+    // Copy the application master jar to the filesystem
+    // Create a local resource to point to the destination jar path
+    FileSystem fs = FileSystem.get(conf);
+    addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(),
+        localResources, null);
+  
+    // Set the log4j properties if needed
+    if (!log4jPropFile.isEmpty()) {
+      addToLocalResources(fs, log4jPropFile, log4jPath, appId.toString(),
+          localResources, null);
+    }
+  
+    if (!shellCommand.isEmpty()) {
+      addToLocalResources(fs, null, shellCommandPath, appId.toString(),
+          localResources, shellCommand);
+    }
+  
+    if (shellArgs.length > 0) {
+      addToLocalResources(fs, null, shellArgsPath, appId.toString(),
+          localResources, StringUtils.join(shellArgs, " "));
+    }
+    
+    return localResources;
   }
   
   private ApplicationSubmissionContext createApplicationSubmissionContext(YarnClientApplication app,
