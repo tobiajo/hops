@@ -21,7 +21,7 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 
-public class Cache implements Serializable {
+public class DistributedCache implements Serializable {
   
   public static class Entry implements Serializable {
     public final URI uri;
