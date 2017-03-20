@@ -730,6 +730,9 @@ public class ApplicationMaster {
   }
   
   private class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
+    
+    Map<ContainerId, Container> allAllocatedContainers = new ConcurrentHashMap<>();
+    
     @SuppressWarnings("unchecked")
     @Override
     public void onContainersCompleted(List<ContainerStatus> completedContainers) {
@@ -793,10 +796,19 @@ public class ApplicationMaster {
 
     @Override
     public void onContainersAllocated(List<Container> allocatedContainers) {
-      LOG.info("Got response from RM for container ask, allocatedCnt="
-          + allocatedContainers.size());
+      LOG.info("Got response from RM for container ask, allocatedCnt=" + allocatedContainers.size());
       numAllocatedContainers.addAndGet(allocatedContainers.size());
       for (Container allocatedContainer : allocatedContainers) {
+        allAllocatedContainers.put(allocatedContainer.getId(), allocatedContainer);
+      }
+      if (numAllocatedContainers.get() == numTotalContainers) {
+        assert numAllocatedContainers.get() == allAllocatedContainers.size();
+        launchAllContainers();
+      }
+    }
+    
+    private void launchAllContainers() {
+      for (Container allocatedContainer : allAllocatedContainers.values()) {
         LOG.info("Launching shell command on a new container."
             + ", containerId=" + allocatedContainer.getId()
             + ", containerNode=" + allocatedContainer.getNodeId().getHost()
@@ -808,11 +820,11 @@ public class ApplicationMaster {
             + allocatedContainer.getResource().getVirtualCores());
         // + ", containerToken"
         // +allocatedContainer.getContainerToken().getIdentifier().toString());
-
+  
         LaunchContainerRunnable runnableLaunchContainer =
             new LaunchContainerRunnable(allocatedContainer, containerListener);
         Thread launchThread = new Thread(runnableLaunchContainer);
-
+  
         // launch and start the container on a separate thread to keep
         // the main thread unblocked
         // as all containers may not be allocated at one go.
