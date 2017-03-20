@@ -19,6 +19,8 @@ package io.hops.tensorflow;
 
 public class ClientArguments {
   
+  public static final String JAR = "jar";
+  
   public static final String NAME = "name";
   public static final String MAIN = "main";
   public static final String ARG = "arg";

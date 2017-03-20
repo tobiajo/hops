@@ -64,7 +64,9 @@ public class TestYarnTF extends Cluster {
         "--container_memory",
         "128",
         "--container_vcores",
-        "1"
+        "1",
+        "--main",
+        customShellScript.getAbsolutePath()
     };
     
     LOG.info("Initializing DS Client");

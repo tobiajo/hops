@@ -26,6 +26,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -196,7 +197,12 @@ public class Client {
   private static final String log4jPath = "log4j.properties";
 
   public static final String SCRIPT_PATH = "ExecScript";
-
+  
+  // Added your YarnTF
+  public static final String AM_JAR_PATH = "AppMaster.jar";
+  public static final String YARNTF_STAGING = ".yarntfStaging";
+  private CommandLine cliParser;
+  
   /**
    * @param args Command line arguments 
    */
@@ -324,7 +330,7 @@ public class Client {
    */
   public boolean init(String[] args) throws ParseException {
 
-    CommandLine cliParser = new GnuParser().parse(opts, args);
+    cliParser = new GnuParser().parse(opts, args);
 
     if (args.length == 0) {
       throw new IllegalArgumentException("No args specified for client to initialize");
@@ -561,7 +567,7 @@ public class Client {
       throws IOException {
     FileSystem fs = FileSystem.get(conf);
     ApplicationId appId = appResponse.getApplicationId();
-  
+    
     Map<String, String> launchEnv = setupLaunchEnv(fs, appId);
     Map<String, LocalResource> localResources = prepareLocalResources(fs, appId);
   
@@ -767,7 +773,71 @@ public class Client {
           localResources, StringUtils.join(shellArgs, " "));
     }
     
+    // YarnTF take over
+  
+    addResource(fs, appId, cliParser.getOptionValue(JAR), null, AM_JAR_PATH, null, localResources);
+    
+    DistributedCache distCache = populateDistributedCache(fs, appId);
+    
+    // copy distCache to HDFS and add to localResources
+    Path baseDir = new Path(fs.getHomeDirectory(), YARNTF_STAGING + "/" +  appId.toString());
+    Path distCachePath = new Path(baseDir, "distCache.ser");
+    FSDataOutputStream out = fs.create(distCachePath);
+    out.write(SerializationUtils.serialize(distCache));
+    out.close();
+    FileStatus distCacheStatus = fs.getFileStatus(distCachePath);
+    LocalResource distCacheResource = LocalResource.newInstance(
+        ConverterUtils.getYarnUrlFromURI(distCachePath.toUri()),
+        LocalResourceType.FILE,
+        LocalResourceVisibility.APPLICATION,
+        distCacheStatus.getLen(),
+        distCacheStatus.getModificationTime());
+    localResources.put("distCache.ser", distCacheResource);
+    
     return localResources;
+  }
+  
+  private DistributedCache populateDistributedCache(FileSystem fs, ApplicationId appId) throws IOException {
+    DistributedCache distCache = new DistributedCache();
+    
+    if (cliParser.hasOption(MAIN)) {
+      addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCache, null);
+    }
+    return distCache;
+  }
+  
+  private void addResource(FileSystem fs, ApplicationId appId, String srcPath, String dstDir, String dstName,
+      DistributedCache distCache, Map<String, LocalResource> localResources) throws
+      IOException {
+    Path src = new Path(srcPath);
+    
+    if (dstDir == null) {
+      dstDir = ".";
+    }
+    if (dstName == null) {
+      dstName = src.getName();
+    }
+    
+    Path baseDir = new Path(fs.getHomeDirectory(), YARNTF_STAGING + "/" +  appId.toString());
+    String dstPath = dstDir + "/" + dstName;
+    Path dst = new Path(baseDir, dstPath);
+    
+    fs.copyFromLocalFile(src, dst);
+    FileStatus dstStatus = fs.getFileStatus(dst);
+    
+    if (distCache !=  null) {
+      distCache.add(new DistributedCache.Entry(dst.toUri(), dstStatus.getLen(), dstStatus.getModificationTime()));
+    }
+    
+    if (localResources != null) {
+      LocalResource resource = LocalResource.newInstance(
+          ConverterUtils.getYarnUrlFromURI(dst.toUri()),
+          LocalResourceType.FILE,
+          LocalResourceVisibility.APPLICATION,
+          dstStatus.getLen(),
+          dstStatus.getModificationTime());
+      localResources.put(dst.getName(), resource);
+    }
   }
   
   /**
