@@ -464,37 +464,7 @@ public class Client {
     LOG.info("Running Client");
     yarnClient.start();
 
-    YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
-    LOG.info("Got Cluster metric info from ASM" 
-        + ", numNodeManagers=" + clusterMetrics.getNumNodeManagers());
-
-    List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(
-        NodeState.RUNNING);
-    LOG.info("Got Cluster node info from ASM");
-    for (NodeReport node : clusterNodeReports) {
-      LOG.info("Got node report from ASM for"
-          + ", nodeId=" + node.getNodeId() 
-          + ", nodeAddress" + node.getHttpAddress()
-          + ", nodeRackName" + node.getRackName()
-          + ", nodeNumContainers" + node.getNumContainers());
-    }
-
-    QueueInfo queueInfo = yarnClient.getQueueInfo(this.amQueue);
-    LOG.info("Queue info"
-        + ", queueName=" + queueInfo.getQueueName()
-        + ", queueCurrentCapacity=" + queueInfo.getCurrentCapacity()
-        + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
-        + ", queueApplicationCount=" + queueInfo.getApplications().size()
-        + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());		
-
-    List<QueueUserACLInfo> listAclInfo = yarnClient.getQueueAclsInfo();
-    for (QueueUserACLInfo aclInfo : listAclInfo) {
-      for (QueueACL userAcl : aclInfo.getUserAcls()) {
-        LOG.info("User ACL Info for Queue"
-            + ", queueName=" + aclInfo.getQueueName()			
-            + ", userAcl=" + userAcl.name());
-      }
-    }		
+    logClusterState();
 
     if (domainId != null && domainId.length() > 0 && toCreateDomain) {
       prepareTimelineDomain();
@@ -503,43 +473,22 @@ public class Client {
     // Get a new application id
     YarnClientApplication app = yarnClient.createApplication();
     GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
-    // TODO get min/max resource capabilities from RM and change memory ask if needed
-    // If we do not have min/max, we may not be able to correctly request 
-    // the required resources from the RM for the app master
-    // Memory ask has to be a multiple of min and less than max. 
-    // Dump out information about cluster capability as seen by the resource manager
-    int maxMem = appResponse.getMaximumResourceCapability().getMemory();
-    LOG.info("Max mem capabililty of resources in this cluster " + maxMem);
-
-    // A resource ask cannot exceed the max. 
-    if (amMemory > maxMem) {
-      LOG.info("AM memory specified above max threshold of cluster. Using max value."
-          + ", specified=" + amMemory
-          + ", max=" + maxMem);
-      amMemory = maxMem;
-    }				
-
-    int maxVCores = appResponse.getMaximumResourceCapability().getVirtualCores();
-    LOG.info("Max virtual cores capabililty of resources in this cluster " + maxVCores);
+    ApplicationId appId = appResponse.getApplicationId();
     
-    if (amVCores > maxVCores) {
-      LOG.info("AM virtual cores specified above max threshold of cluster. " 
-          + "Using max value." + ", specified=" + amVCores 
-          + ", max=" + maxVCores);
-      amVCores = maxVCores;
-    }
+    verifyClusterResources(appResponse);
     
-    // set the application name
-    ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
-    ApplicationId appId = appContext.getApplicationId();
-
-    appContext.setKeepContainersAcrossApplicationAttempts(keepContainers);
-    appContext.setApplicationName(appName);
-
-    if (attemptFailuresValidityInterval >= 0) {
-      appContext
-        .setAttemptFailuresValidityInterval(attemptFailuresValidityInterval);
-    }
+    ContainerLaunchContext containerContext = createContainerLaunchContext(appResponse);
+    ApplicationSubmissionContext appContext = createApplicationSubmissionContext(app, containerContext);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     // set local resources for the application master
     // local files or archives as needed
@@ -734,6 +683,97 @@ public class Client {
 
     return appId;
 
+  }
+  
+  private void logClusterState() throws IOException, YarnException {
+    YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
+    LOG.info("Got Cluster metric info from ASM"
+        + ", numNodeManagers=" + clusterMetrics.getNumNodeManagers());
+  
+    List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(
+        NodeState.RUNNING);
+    LOG.info("Got Cluster node info from ASM");
+    for (NodeReport node : clusterNodeReports) {
+      LOG.info("Got node report from ASM for"
+          + ", nodeId=" + node.getNodeId()
+          + ", nodeAddress" + node.getHttpAddress()
+          + ", nodeRackName" + node.getRackName()
+          + ", nodeNumContainers" + node.getNumContainers());
+    }
+  
+    QueueInfo queueInfo = yarnClient.getQueueInfo(this.amQueue);
+    LOG.info("Queue info"
+        + ", queueName=" + queueInfo.getQueueName()
+        + ", queueCurrentCapacity=" + queueInfo.getCurrentCapacity()
+        + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
+        + ", queueApplicationCount=" + queueInfo.getApplications().size()
+        + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());
+  
+    List<QueueUserACLInfo> listAclInfo = yarnClient.getQueueAclsInfo();
+    for (QueueUserACLInfo aclInfo : listAclInfo) {
+      for (QueueACL userAcl : aclInfo.getUserAcls()) {
+        LOG.info("User ACL Info for Queue"
+            + ", queueName=" + aclInfo.getQueueName()
+            + ", userAcl=" + userAcl.name());
+      }
+    }
+  }
+  
+  private void verifyClusterResources(GetNewApplicationResponse appResponse) {
+    // TODO get min/max resource capabilities from RM and change memory ask if needed
+    // If we do not have min/max, we may not be able to correctly request
+    // the required resources from the RM for the app master
+    // Memory ask has to be a multiple of min and less than max.
+    // Dump out information about cluster capability as seen by the resource manager
+    int maxMem = appResponse.getMaximumResourceCapability().getMemory();
+    LOG.info("Max mem capabililty of resources in this cluster " + maxMem);
+  
+    // A resource ask cannot exceed the max.
+    if (amMemory > maxMem) {
+      LOG.info("AM memory specified above max threshold of cluster. Using max value."
+          + ", specified=" + amMemory
+          + ", max=" + maxMem);
+      amMemory = maxMem;
+    }
+  
+    int maxVCores = appResponse.getMaximumResourceCapability().getVirtualCores();
+    LOG.info("Max virtual cores capabililty of resources in this cluster " + maxVCores);
+  
+    if (amVCores > maxVCores) {
+      LOG.info("AM virtual cores specified above max threshold of cluster. "
+          + "Using max value." + ", specified=" + amVCores
+          + ", max=" + maxVCores);
+      amVCores = maxVCores;
+    }
+  }
+  
+  private ContainerLaunchContext createContainerLaunchContext(GetNewApplicationResponse appResponse) {
+    return null;
+  }
+  
+  private Map<String, String> setupLaunchEnv() {
+    return null;
+  }
+  
+  private Map<String, LocalResource> prepareLocalResources() {
+    return null;
+  }
+  
+  private ApplicationSubmissionContext createApplicationSubmissionContext(YarnClientApplication app,
+      ContainerLaunchContext containerContext) {
+    // set the application name
+    ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
+    ApplicationId appId = appContext.getApplicationId();
+  
+    appContext.setKeepContainersAcrossApplicationAttempts(keepContainers);
+    appContext.setApplicationName(appName);
+  
+    if (attemptFailuresValidityInterval >= 0) {
+      appContext
+          .setAttemptFailuresValidityInterval(attemptFailuresValidityInterval);
+    }
+    
+    return appContext;
   }
 
   /**
