@@ -237,10 +237,14 @@ public class ApplicationMaster {
   @VisibleForTesting
   protected AtomicInteger numRequestedContainers = new AtomicInteger();
   
+  /*
   // Shell command to be executed
   private String shellCommand = "";
   // Args to be passed to the shell command
   private String shellArgs = "";
+  */
+  
+  private String pyArgs = "";
   
   // Env variables to be setup for the shell command
   private Map<String, String> shellEnv = new HashMap<String, String>();
@@ -272,7 +276,7 @@ public class ApplicationMaster {
   private static final String shellCommandPath = "shellCommands";
   */
   
-  private static final String shellArgsPath = "shellArgs";
+  //private static final String shellArgsPath = "shellArgs";
 
   private volatile boolean done;
 
@@ -443,8 +447,8 @@ public class ApplicationMaster {
       shellCommand = readContent(shellCommandPath);
     }*/
 
-    if (fileExist(shellArgsPath)) {
-      shellArgs = readContent(shellArgsPath);
+    if (fileExist(Constants.PY_ARGS_PATH)) {
+      pyArgs = readContent(Constants.PY_ARGS_PATH);
     }
     
 
@@ -528,7 +532,7 @@ public class ApplicationMaster {
     LOG.info("Starting ApplicationMaster. " +
         "Workers: " + cliParser.getOptionValue(WORKERS) + ", Parameter servers: " + cliParser.getOptionValue(PSES));
   
-    FileInputStream fin = new FileInputStream(Client.DIST_CACHE_PATH);
+    FileInputStream fin = new FileInputStream(Constants.DIST_CACHE_PATH);
     ObjectInputStream ois = new ObjectInputStream(fin);
     try {
       distCacheList = (DistributedCacheList) ois.readObject();
@@ -1076,7 +1080,7 @@ public class ApplicationMaster {
       */
 
       // Set args for the shell command if any
-      vargs.add(shellArgs);
+      vargs.add(pyArgs);
       
       // Add log redirect params
       vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");

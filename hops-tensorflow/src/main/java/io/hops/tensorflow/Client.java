@@ -197,7 +197,7 @@ public class Client {
   private static final String shellCommandPath = "shellCommands";
   */
   
-  private static final String pythonArgsPath = "shellArgs";
+  //private static final String pythonArgsPath = "shellArgs";
   private static final String appMasterJarPath = "AppMaster.jar";
   // Hardcoded path to custom log_properties
   private static final String log4jPath = "log4j.properties";
@@ -207,10 +207,6 @@ public class Client {
   */
   
   // Added for YarnTF
-  public static final String AM_JAR_PATH = "AppMaster.jar";
-  public static final String DIST_CACHE_PATH = "distCacheList.ser";
-  public static final String LOCALIZED_PYTHON_DIR = "__pyfiles__";
-  public static final String YARNTF_STAGING = ".YarnTF";
   private CommandLine cliParser;
   private String mainRelativePath; // relative for worker or ps
   
@@ -685,7 +681,7 @@ public class Client {
     */
     
     if (domainId != null && domainId.length() > 0) {
-      env.put(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN, domainId);
+      env.put(Constants.YARNTFTIMELINEDOMAIN, domainId);
     }
     
     // Add AppMaster.jar location to classpath
@@ -742,19 +738,19 @@ public class Client {
     */
     
     if (shellArgs.length > 0) {
-      addToLocalResources(fs, null, pythonArgsPath, appId.toString(),
+      addToLocalResources(fs, null, Constants.PY_ARGS_PATH, appId.toString(),
           localResources, StringUtils.join(shellArgs, " "));
     }
     
     // YarnTF take over
   
-    addResource(fs, appId, cliParser.getOptionValue(JAR), null, AM_JAR_PATH, null, localResources, null);
+    addResource(fs, appId, cliParser.getOptionValue(JAR), null, Constants.AM_JAR_PATH, null, localResources, null);
     
     DistributedCacheList dcl = populateDistributedCache(fs, appId);
     
     // write distCacheList to HDFS and add to localResources
-    Path baseDir = new Path(fs.getHomeDirectory(), YARNTF_STAGING + "/" +  appId.toString());
-    Path dclPath = new Path(baseDir, DIST_CACHE_PATH);
+    Path baseDir = new Path(fs.getHomeDirectory(), Constants.YARNTF_STAGING + "/" +  appId.toString());
+    Path dclPath = new Path(baseDir, Constants.DIST_CACHE_PATH);
     FSDataOutputStream ostream = fs.create(dclPath);
     ostream.write(SerializationUtils.serialize(dcl));
     ostream.close();
@@ -765,7 +761,7 @@ public class Client {
         LocalResourceVisibility.APPLICATION,
         dclStatus.getLen(),
         dclStatus.getModificationTime());
-    localResources.put(DIST_CACHE_PATH, distCacheResource);
+    localResources.put(Constants.DIST_CACHE_PATH, distCacheResource);
     
     return localResources;
   }
@@ -775,12 +771,12 @@ public class Client {
     
     mainRelativePath = addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCacheList, null, null);
   
-    StringBuilder pythonPath = new StringBuilder(LOCALIZED_PYTHON_DIR);
+    StringBuilder pythonPath = new StringBuilder(Constants.LOCALIZED_PYTHON_DIR);
     if (cliParser.hasOption(PY_FILES)) {
       String[] pyFiles = cliParser.getOptionValue(PY_FILES).split(",");
       for (String file : pyFiles) {
         if (file.endsWith(".py")) {
-          addResource(fs, appId, file, LOCALIZED_PYTHON_DIR, null, distCacheList, null, null);
+          addResource(fs, appId, file, Constants.LOCALIZED_PYTHON_DIR, null, distCacheList, null, null);
         } else {
           addResource(fs, appId, file, null, null, distCacheList, null, pythonPath);
         }
@@ -803,7 +799,7 @@ public class Client {
       dstName = src.getName();
     }
     
-    Path baseDir = new Path(fs.getHomeDirectory(), YARNTF_STAGING + "/" +  appId.toString());
+    Path baseDir = new Path(fs.getHomeDirectory(), Constants.YARNTF_STAGING + "/" +  appId.toString());
     String dstPath = dstDir + "/" + dstName;
     Path dst = new Path(baseDir, dstPath);
     
