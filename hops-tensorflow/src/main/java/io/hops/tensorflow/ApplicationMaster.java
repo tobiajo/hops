@@ -102,6 +102,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.hops.tensorflow.ApplicationMasterArguments.*;
+
 /**
  * An ApplicationMaster for executing shell commands on a set of launched
  * containers using the YARN framework.
@@ -353,21 +355,7 @@ public class ApplicationMaster {
    * @throws IOException
    */
   public boolean init(String[] args) throws ParseException, IOException {
-    Options opts = new Options();
-    opts.addOption("app_attempt_id", true,
-        "App Attempt ID. Not to be used unless for testing purposes");
-    opts.addOption("shell_env", true,
-        "Environment for shell script. Specified as env_key=env_val pairs");
-    opts.addOption("container_memory", true,
-        "Amount of memory in MB to be requested to run the shell command");
-    opts.addOption("container_vcores", true,
-        "Amount of virtual cores to be requested to run the shell command");
-    opts.addOption("num_containers", true,
-        "No. of containers on which the shell command needs to be executed");
-    opts.addOption("priority", true, "Application Priority. Default 0");
-    opts.addOption("debug", false, "Dump out debug information");
-
-    opts.addOption("help", false, "Print usage");
+    Options opts = createOptions();
     CommandLine cliParser = new GnuParser().parse(opts, args);
 
     if (args.length == 0) {

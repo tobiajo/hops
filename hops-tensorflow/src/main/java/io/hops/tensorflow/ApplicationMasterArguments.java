@@ -17,5 +17,13 @@
  */
 package io.hops.tensorflow;
 
-public class ApplicationMasterArguments {
+import org.apache.commons.cli.Options;
+
+public class ApplicationMasterArguments extends CommonArguments {
+  
+  public static final Options createOptions() {
+    Options opts = CommonArguments.createOptions();
+    opts.addOption("app_attempt_id", true, "App Attempt ID. Not to be used unless for testing purposes");
+    return opts;
+  }
 }

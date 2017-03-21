@@ -248,67 +248,7 @@ public class Client {
     this.appMasterMainClass = appMasterMainClass;
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(conf);
-    opts = new Options();
-    opts.addOption("priority", true, "Application Priority. Default 0");
-    opts.addOption("queue", true, "RM Queue in which this application is to be submitted");
-    opts.addOption("timeout", true, "Application timeout in milliseconds");
-    opts.addOption("shell_command", true, "Shell command to be executed by " +
-        "the Application Master. Can only specify either --shell_command " +
-        "or --shell_script");
-    opts.addOption("shell_script", true, "Location of the shell script to be " +
-        "executed. Can only specify either --shell_command or --shell_script");
-    opts.addOption("shell_cmd_priority", true, "Priority for the shell command containers");
-    opts.addOption("log_properties", true, "log4j.properties file");
-    opts.addOption("keep_containers_across_application_attempts", false,
-      "Flag to indicate whether to keep containers across application attempts." +
-      " If the flag is true, running containers will not be killed when" +
-      " application attempt fails and these containers will be retrieved by" +
-      " the new application attempt ");
-    opts.addOption("attempt_failures_validity_interval", true,
-      "when attempt_failures_validity_interval in milliseconds is set to > 0," +
-      "the failure number will not take failures which happen out of " +
-      "the validityInterval into failure count. " +
-      "If failure count reaches to maxAppAttempts, " +
-      "the application will be failed.");
-    opts.addOption("debug", false, "Dump out debug information");
-    opts.addOption("domain", true, "ID of the timeline domain where the "
-        + "timeline entities will be put");
-    opts.addOption("view_acls", true, "Users and groups that allowed to "
-        + "view the timeline entities in the given domain");
-    opts.addOption("modify_acls", true, "Users and groups that allowed to "
-        + "modify the timeline entities in the given domain");
-    opts.addOption("create", false, "Flag to indicate whether to create the "
-        + "domain specified with -domain.");
-    opts.addOption("help", false, "Print usage");
-    opts.addOption("node_label_expression", true,
-        "Node label expression to determine the nodes"
-            + " where all the containers of this application"
-            + " will be allocated, \"\" means containers"
-            + " can be allocated anywhere, if you don't specify the option,"
-            + " default node_label_expression of queue will be used.");
-    
-    // YarnTF options
-    opts.addOption(JAR, true, "Jar file containing the application master");
-    opts.addOption(AM_MEMORY, true, "Amount of memory in MB to be requested to run the application master");
-    opts.addOption(AM_VCORES, true, "Amount of virtual cores to be requested to run the application master");
-  
-    opts.addOption("container_memory", true, "Amount of memory in MB to be requested to run the shell command");
-    opts.addOption("container_vcores", true, "Amount of virtual cores to be requested to run the shell command");
-    opts.addOption("num_containers", true, "No. of containers on which the shell command needs to be executed");
-    opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
-    
-    opts.addOption(MAIN, true, "Your application's main Python file.");
-    opts.addOption(ARG, true, "Argument to be passed to your application's main class.\n" +
-        "Multiple invocations are possible, each will be passed in order.");
-    opts.getOption(ARG).setArgs(Option.UNLIMITED_VALUES);
-    opts.addOption(NAME, true, "A name of your application.");
-    opts.addOption(PY_FILES, true, "Comma-separated list of .zip, .egg, or .py files to place on the PYTHONPATH for Python apps.");
-    opts.addOption(FILES, true, "Comma-separated list of files to be placed in the working directory of each node.");
-    opts.addOption(WORKER, true, "Number of workers");
-    opts.addOption(PS, true, "Number of parameter servers");
-    opts.addOption(GPU, false, "Enable GPU");
-    opts.addOption(RDMA, false, "Enable RDMA");
-    opts.addOption(TENSORBOARD, false, "Enable TensorBoard");
+    opts = createOptions();
   }
 
   /**
@@ -588,6 +528,9 @@ public class Client {
     vargs.add("--container_vcores " + String.valueOf(containerVirtualCores));
     vargs.add("--num_containers " + String.valueOf(numContainers));
     vargs.add("--priority " + String.valueOf(shellCmdPriority));
+    
+    vargs.add(createArgument(WORKERS));
+    vargs.add(createArgument(PSES));
   
     for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
       vargs.add("--shell_env " + entry.getKey() + "=" + entry.getValue());
@@ -645,6 +588,10 @@ public class Client {
     }
     
     return amContainer;
+  }
+  
+  private String createArgument(String arg) {
+    return "--" + arg + " " + cliParser.getOptionValue(arg);
   }
   
   private ApplicationSubmissionContext createApplicationSubmissionContext(YarnClientApplication app,
