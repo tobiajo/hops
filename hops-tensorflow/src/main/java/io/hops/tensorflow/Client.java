@@ -22,7 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
@@ -524,13 +523,14 @@ public class Client {
     // Set class name
     vargs.add(appMasterMainClass);
     // Set params for Application Master
+    
     vargs.add("--container_memory " + String.valueOf(containerMemory));
     vargs.add("--container_vcores " + String.valueOf(containerVirtualCores));
     vargs.add("--num_containers " + String.valueOf(numContainers));
     vargs.add("--priority " + String.valueOf(shellCmdPriority));
     
-    vargs.add(createArgument(WORKERS));
-    vargs.add(createArgument(PSES));
+    vargs.add(forwardArgument(WORKERS));
+    vargs.add(forwardArgument(PSES));
   
     for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
       vargs.add("--shell_env " + entry.getKey() + "=" + entry.getValue());
@@ -590,7 +590,7 @@ public class Client {
     return amContainer;
   }
   
-  private String createArgument(String arg) {
+  private String forwardArgument(String arg) {
     return "--" + arg + " " + cliParser.getOptionValue(arg);
   }
   

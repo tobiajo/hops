@@ -116,7 +116,11 @@ public class TestYarnTF extends TestCluster {
         "--container_vcores",
         "1",
         "--main",
-        "examples/create_cluster_spec.py"
+        "examples/create_cluster_spec.py",
+        "--workers",
+        "4",
+        "--pses",
+        "1"
     };
     
     LOG.info("Initializing DS Client");

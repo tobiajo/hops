@@ -281,6 +281,7 @@ public class ApplicationMaster {
   private final String windows_command = "cmd /c";
   
   // YarnTF stuff
+  private CommandLine cliParser;
   private DistributedCacheList distCacheList;
 
   /**
@@ -356,7 +357,7 @@ public class ApplicationMaster {
    */
   public boolean init(String[] args) throws ParseException, IOException {
     Options opts = createOptions();
-    CommandLine cliParser = new GnuParser().parse(opts, args);
+    cliParser = new GnuParser().parse(opts, args);
 
     if (args.length == 0) {
       printUsage(opts);
@@ -510,7 +511,8 @@ public class ApplicationMaster {
    */
   @SuppressWarnings({ "unchecked" })
   public void run() throws YarnException, IOException, InterruptedException {
-    LOG.info("Starting ApplicationMaster");
+    LOG.info("Starting ApplicationMaster. " +
+        "Workers: " + cliParser.getOptionValue(WORKERS) + ", Parameter servers: " + cliParser.getOptionValue(PSES));
   
     FileInputStream fin = new FileInputStream(Client.DIST_CACHE_PATH);
     ObjectInputStream ois = new ObjectInputStream(fin);
@@ -555,10 +557,8 @@ public class ApplicationMaster {
     allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
 
     // Create appSubmitterUgi and add original tokens to it
-    String appSubmitterUserName =
-        System.getenv(Environment.USER.name());
-    appSubmitterUgi =
-        UserGroupInformation.createRemoteUser(appSubmitterUserName);
+    String appSubmitterUserName = System.getenv(Environment.USER.name());
+    appSubmitterUgi = UserGroupInformation.createRemoteUser(appSubmitterUserName);
     appSubmitterUgi.addCredentials(credentials);
 
 
@@ -811,6 +811,8 @@ public class ApplicationMaster {
     }
     
     private void launchAllContainers() {
+      int worker = -1;
+      int ps = -1;
       for (Container allocatedContainer : allAllocatedContainers.values()) {
         LOG.info("Launching shell command on a new container."
             + ", containerId=" + allocatedContainer.getId()
@@ -823,9 +825,22 @@ public class ApplicationMaster {
             + allocatedContainer.getResource().getVirtualCores());
         // + ", containerToken"
         // +allocatedContainer.getContainerToken().getIdentifier().toString());
-  
+        
+        String jobName;
+        int taskIndex;
+        
+        if (worker < Integer.parseInt(cliParser.getOptionValue(WORKERS)) - 1) {
+          jobName = "worker";
+          taskIndex = ++worker;
+        } else if (ps < Integer.parseInt(cliParser.getOptionValue(WORKERS)) - 1) {
+          jobName = "ps";
+          taskIndex = ++ps;
+        } else {
+          throw new IllegalStateException("Too many TF tasks: worker " + worker + ", ps: " + ps);
+        }
+        
         LaunchContainerRunnable runnableLaunchContainer =
-            new LaunchContainerRunnable(allocatedContainer, containerListener);
+            new LaunchContainerRunnable(allocatedContainer, containerListener, jobName, taskIndex);
         Thread launchThread = new Thread(runnableLaunchContainer);
   
         // launch and start the container on a separate thread to keep
@@ -940,15 +955,20 @@ public class ApplicationMaster {
     Container container;
 
     NMCallbackHandler containerListener;
+    
+    String jobName;
+    int taskIndex;
 
     /**
      * @param lcontainer Allocated container
      * @param containerListener Callback handler of the container
      */
     public LaunchContainerRunnable(
-        Container lcontainer, NMCallbackHandler containerListener) {
+        Container lcontainer, NMCallbackHandler containerListener, String jobName, int taskIndex) {
       this.container = lcontainer;
       this.containerListener = containerListener;
+      this.jobName = jobName;
+      this.taskIndex = taskIndex;
     }
 
     @Override
@@ -1059,8 +1079,11 @@ public class ApplicationMaster {
       // download anyfiles in the distributed file-system. The tokens are
       // otherwise also useful in cases, for e.g., when one is running a
       // "hadoop dfs" command inside the distributed shell.
+      Map<String, String> shellEnvCopy = new HashMap<>(shellEnv);
+      shellEnvCopy.put("JOB_NAME", jobName);
+      shellEnvCopy.put("TASK_INDEX", Integer.toString(taskIndex));
       ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(
-        localResources, shellEnv, commands, null, allTokens.duplicate(), null);
+        localResources, shellEnvCopy, commands, null, allTokens.duplicate(), null);
       containerListener.addContainer(container.getId(), container);
       nmClientAsync.startContainerAsync(container, ctx);
     }
