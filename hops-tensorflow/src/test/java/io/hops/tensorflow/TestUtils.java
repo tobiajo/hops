@@ -68,8 +68,8 @@ public class TestUtils {
                 if (sCurrentLine.contains(expectedWord)) {
                   numOfWords++;
                 }
-              } else if (output.getName().trim().equals("stdout")){
-                if (! Shell.WINDOWS) {
+              } else if (output.getName().trim().equals("stdout")) {
+                if (!Shell.WINDOWS) {
                   Assert.assertEquals("The current is" + sCurrentLine,
                       expectedContent.get(numOfline), sCurrentLine.trim());
                   numOfline++;
@@ -92,8 +92,9 @@ public class TestUtils {
             e.printStackTrace();
           } finally {
             try {
-              if (br != null)
+              if (br != null) {
                 br.close();
+              }
             } catch (IOException ex) {
               ex.printStackTrace();
             }
@@ -114,9 +115,9 @@ public class TestUtils {
   
   public static boolean dumpAllRemoteContainersLogs(MiniYARNCluster yarnCluster, ApplicationId appId) {
     File logFolder = new File(yarnCluster
-            .getNodeManager(0)
-            .getConfig()
-            .get(YarnConfiguration.NM_LOG_DIRS, YarnConfiguration.DEFAULT_NM_LOG_DIRS));
+        .getNodeManager(0)
+        .getConfig()
+        .get(YarnConfiguration.NM_LOG_DIRS, YarnConfiguration.DEFAULT_NM_LOG_DIRS));
     File appFolder = new File(logFolder, appId.toString());
     File[] containerFolders = appFolder.listFiles();
     

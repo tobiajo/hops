@@ -25,17 +25,23 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 
-import static io.hops.tensorflow.ClientArguments.*;
+import static io.hops.tensorflow.ClientArguments.AM_JAR;
+import static io.hops.tensorflow.ClientArguments.AM_MEMORY;
+import static io.hops.tensorflow.ClientArguments.AM_VCORES;
+import static io.hops.tensorflow.ClientArguments.ARGS;
+import static io.hops.tensorflow.ClientArguments.MAIN;
+import static io.hops.tensorflow.ClientArguments.MEMORY;
+import static io.hops.tensorflow.ClientArguments.PSES;
+import static io.hops.tensorflow.ClientArguments.VCORES;
+import static io.hops.tensorflow.ClientArguments.WORKERS;
 
 public class TestYarnTf extends TestCluster {
   
   private static final Log LOG = LogFactory.getLog(TestYarnTf.class);
   
-  @Test(timeout=90000)
+  @Test(timeout = 90000)
   public void testCreateClusterSpec() throws Exception {
     String[] args = {
         "--" + AM_JAR, APPMASTER_JAR,
@@ -75,7 +81,7 @@ public class TestYarnTf extends TestCluster {
     
     boolean result = client.monitorApplication(appId);
     LOG.info("Client run completed. Result=" + result);
-  
+    
     TestUtils.dumpAllRemoteContainersLogs(yarnCluster, appId);
     Thread.sleep(5000);
     TestUtils.dumpAllAggregatedContainersLogs(yarnCluster, appId);

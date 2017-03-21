@@ -38,8 +38,7 @@ import java.net.URL;
 
 public abstract class TestCluster {
   
-  private static final Log LOG =
-      LogFactory.getLog(TestCluster.class);
+  private static final Log LOG = LogFactory.getLog(TestCluster.class);
   
   protected MiniYARNCluster yarnCluster = null;
   protected YarnConfiguration conf = null;
