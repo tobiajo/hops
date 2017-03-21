@@ -17,7 +17,6 @@
  */
 package io.hops.tensorflow;
 
-import old__io.hops.tensorflow.ClusterSpecGenClient;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -25,22 +24,22 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-public class TestClusterSpecGen {
+public class TestClusterSpecGenerator {
   
   private static final int INITIAL_PORT = 1;
   private static final int NUM_CONTAINERS = 3;
   
-  private ClusterSpecGenServer server;
-  private ClusterSpecGenClient client;
+  private ClusterSpecGeneratorServer server;
+  private ClusterSpecGeneratorClient client;
   
   @Before
   public void setup() {
-    server = new ClusterSpecGenServer(NUM_CONTAINERS);
+    server = new ClusterSpecGeneratorServer(NUM_CONTAINERS);
     int port = INITIAL_PORT;
     while (port <= 65535) {
       try {
         server.start(port);
-        client = new ClusterSpecGenClient("localhost", port);
+        client = new ClusterSpecGeneratorClient("localhost", port);
         break;
       } catch (IOException e) {
         port++;
@@ -58,11 +57,11 @@ public class TestClusterSpecGen {
   
   @Test
   public void ClusterSpecGenTest() {
-    Assert.assertTrue(client.registerContainer("A1", "C1", "(ip)", 1024, "ps", 0));
-    Assert.assertTrue(client.registerContainer("A1", "C1", "(ip)", 1024, "ps", 0));
+    Assert.assertTrue(client.registerContainer("A1", "(ip)", 1024, "ps", 0));
+    Assert.assertTrue(client.registerContainer("A1", "(ip)", 1024, "ps", 0));
     Assert.assertEquals(0, client.getClusterSpec().size());
-    Assert.assertTrue(client.registerContainer("A1", "C2", "(ip)", 1024, "worker", 0));
-    Assert.assertTrue(client.registerContainer("A1", "C3", "(ip)", 1024, "worker", 1));
+    Assert.assertTrue(client.registerContainer("A1", "(ip)", 1024, "worker", 0));
+    Assert.assertTrue(client.registerContainer("A1", "(ip)", 1024, "worker", 1));
     Assert.assertEquals(NUM_CONTAINERS, client.getClusterSpec().size());
   }
 }

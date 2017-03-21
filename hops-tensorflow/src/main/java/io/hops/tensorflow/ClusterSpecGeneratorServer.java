@@ -20,12 +20,12 @@ package io.hops.tensorflow;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
-import io.hops.tensorflow.clusterspecgen.ClusterSpecGenGrpc;
-import io.hops.tensorflow.clusterspecgen.Container;
-import io.hops.tensorflow.clusterspecgen.GetClusterSpecReply;
-import io.hops.tensorflow.clusterspecgen.GetClusterSpecRequest;
-import io.hops.tensorflow.clusterspecgen.RegisterContainerReply;
-import io.hops.tensorflow.clusterspecgen.RegisterContainerRequest;
+import io.hops.tensorflow.clusterspecgenerator.ClusterSpecGeneratorGrpc;
+import io.hops.tensorflow.clusterspecgenerator.Container;
+import io.hops.tensorflow.clusterspecgenerator.GetClusterSpecReply;
+import io.hops.tensorflow.clusterspecgenerator.GetClusterSpecRequest;
+import io.hops.tensorflow.clusterspecgenerator.RegisterContainerReply;
+import io.hops.tensorflow.clusterspecgenerator.RegisterContainerRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -37,14 +37,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ClusterSpecGenServer {
+public class ClusterSpecGeneratorServer {
   
-  private static final Log LOG = LogFactory.getLog(ClusterSpecGenServer.class);
+  private static final Log LOG = LogFactory.getLog(ClusterSpecGeneratorServer.class);
   
   private int numContainers;
   private Server server;
   
-  public ClusterSpecGenServer(int numContainers) {
+  public ClusterSpecGeneratorServer(int numContainers) {
     this.numContainers = numContainers;
   }
   
@@ -53,7 +53,7 @@ public class ClusterSpecGenServer {
       throw new IllegalStateException("Already started");
     }
     server = ServerBuilder.forPort(port)
-        .addService(new ClusterSpecGenImpl(numContainers))
+        .addService(new ClusterSpecGeneratorImpl(numContainers))
         .build()
         .start();
     LOG.info("Server started, listening on " + port);
@@ -62,7 +62,7 @@ public class ClusterSpecGenServer {
       public void run() {
         // Use stderr here since the logger may have been reset by its JVM shutdown hook.
         System.err.println("*** shutting down gRPC server since JVM is shutting down");
-        ClusterSpecGenServer.this.stop();
+        ClusterSpecGeneratorServer.this.stop();
         System.err.println("*** server shut down");
       }
     });
@@ -81,17 +81,17 @@ public class ClusterSpecGenServer {
   }
   
   public static void main(String[] args) throws IOException, InterruptedException {
-    ClusterSpecGenServer server = new ClusterSpecGenServer(3);
+    ClusterSpecGeneratorServer server = new ClusterSpecGeneratorServer(3);
     server.start(50051);
     server.blockUntilShutdown();
   }
   
-  private static class ClusterSpecGenImpl extends ClusterSpecGenGrpc.ClusterSpecGenImplBase {
+  private static class ClusterSpecGeneratorImpl extends ClusterSpecGeneratorGrpc.ClusterSpecGeneratorImplBase {
     
     int numContainers;
     Map<String, Container> clusterSpec;
     
-    ClusterSpecGenImpl(int numContainers) {
+    ClusterSpecGeneratorImpl(int numContainers) {
       this.numContainers = numContainers;
       clusterSpec = new ConcurrentHashMap<>();
     }
@@ -101,8 +101,8 @@ public class ClusterSpecGenServer {
         StreamObserver<RegisterContainerReply> responseObserver) {
       // TODO: check applicationID ?
       Container container = request.getContainer();
-      LOG.debug("Received registerContainerRequest with containerId: " + container.getContainerId());
-      clusterSpec.put(container.getContainerId(), container);
+      LOG.debug("Received registerContainerRequest from: " + container.getJobName() + container.getTaskIndex());
+      clusterSpec.put(container.getJobName() + container.getTaskIndex(), container);
       if (clusterSpec.size() > numContainers) {
         throw new IllegalStateException("clusterSpec size: " + clusterSpec.size());
       }

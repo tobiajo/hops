@@ -15,47 +15,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package old__io.hops.tensorflow;
+package io.hops.tensorflow;
 
 import com.google.common.collect.ImmutableList;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
-import io.hops.tensorflow.clusterspecgen.ClusterSpecGenGrpc;
-import io.hops.tensorflow.clusterspecgen.Container;
-import io.hops.tensorflow.clusterspecgen.GetClusterSpecReply;
-import io.hops.tensorflow.clusterspecgen.GetClusterSpecRequest;
-import io.hops.tensorflow.clusterspecgen.RegisterContainerRequest;
+import io.hops.tensorflow.clusterspecgenerator.ClusterSpecGeneratorGrpc;
+import io.hops.tensorflow.clusterspecgenerator.Container;
+import io.hops.tensorflow.clusterspecgenerator.GetClusterSpecReply;
+import io.hops.tensorflow.clusterspecgenerator.GetClusterSpecRequest;
+import io.hops.tensorflow.clusterspecgenerator.RegisterContainerRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.concurrent.TimeUnit;
 
-public class ClusterSpecGenClient {
+public class ClusterSpecGeneratorClient {
   
-  private static final Log LOG = LogFactory.getLog(ClusterSpecGenClient.class);
+  private static final Log LOG = LogFactory.getLog(ClusterSpecGeneratorClient.class);
   
   private final ManagedChannel channel;
-  private final ClusterSpecGenGrpc.ClusterSpecGenBlockingStub blockingStub;
+  private final ClusterSpecGeneratorGrpc.ClusterSpecGeneratorBlockingStub blockingStub;
   
-  public ClusterSpecGenClient(String host, int port) {
+  public ClusterSpecGeneratorClient(String host, int port) {
     this(ManagedChannelBuilder.forAddress(host, port).usePlaintext(true));
   }
   
-  private ClusterSpecGenClient(ManagedChannelBuilder<?> channelBuilder) {
+  private ClusterSpecGeneratorClient(ManagedChannelBuilder<?> channelBuilder) {
     channel = channelBuilder.build();
-    blockingStub = ClusterSpecGenGrpc.newBlockingStub(channel);
+    blockingStub = ClusterSpecGeneratorGrpc.newBlockingStub(channel);
   }
   
   public void shutdown() throws InterruptedException {
     channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
   }
   
-  public boolean registerContainer(String applicationId, String containerId,
-      String ip, int port, String jobName, int taskIndex) {
+  public boolean registerContainer(String applicationId, String ip, int port, String jobName, int taskIndex) {
     Container container = Container.newBuilder()
         .setApplicationId(applicationId)
-        .setContainerId(containerId)
         .setIp(ip)
         .setPort(port)
         .setJobName(jobName)

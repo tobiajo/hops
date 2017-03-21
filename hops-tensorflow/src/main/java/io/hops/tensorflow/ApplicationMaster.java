@@ -87,6 +87,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.StringReader;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -104,12 +105,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * An ApplicationMaster for executing shell commands on a set of launched
  * containers using the YARN framework.
- * 
+ *
  * <p>
  * This class is meant to act as an example on how to write yarn-based
  * application masters.
  * </p>
- * 
+ *
  * <p>
  * The ApplicationMaster is started on a container by the
  * <code>ResourceManager</code>'s launcher. The first thing that the
@@ -121,14 +122,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  * status/job history if needed. However, in the distributedshell, trackingurl
  * and appMasterHost:appMasterRpcPort are not supported.
  * </p>
- * 
+ *
  * <p>
  * The <code>ApplicationMaster</code> needs to send a heartbeat to the
  * <code>ResourceManager</code> at regular intervals to inform the
  * <code>ResourceManager</code> that it is up and alive. The
  * {@link ApplicationMasterProtocol#allocate} to the <code>ResourceManager</code> from the
  * <code>ApplicationMaster</code> acts as a heartbeat.
- * 
+ *
  * <p>
  * For the actual handling of the job, the <code>ApplicationMaster</code> has to
  * request the <code>ResourceManager</code> via {@link AllocateRequest} for the
@@ -139,7 +140,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <code>ApplicationMaster</code> of the set of newly allocated containers,
  * completed containers as well as current state of available resources.
  * </p>
- * 
+ *
  * <p>
  * For each allocated container, the <code>ApplicationMaster</code> can then set
  * up the necessary launch context via {@link ContainerLaunchContext} to specify
@@ -148,7 +149,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * submit a {@link StartContainerRequest} to the {@link ContainerManagementProtocol} to
  * launch and execute the defined commands on the given allocated container.
  * </p>
- * 
+ *
  * <p>
  * The <code>ApplicationMaster</code> can monitor the launched container by
  * either querying the <code>ResourceManager</code> using
@@ -532,6 +533,20 @@ public class ApplicationMaster {
     }
     
     LOG.info("Loaded distribute cache list: " + distCacheList.toString());
+    ClusterSpecGeneratorServer clusterSpecServer = new ClusterSpecGeneratorServer(numTotalContainers);
+    
+    LOG.info("Starting ClusterSpecGeneratorServer");
+    int port = 2222;
+    while (true)
+    try {
+      clusterSpecServer.start(port);
+      break;
+    } catch (IOException e) {
+      port++;
+    }
+  
+    shellEnv.put("AM_ADDRESS",InetAddress.getLocalHost().getHostName() + ":" + port);
+    shellEnv.put("APPLICATION_ID", appAttemptID.getApplicationId().toString());
   
     // Note: Credentials, Token, UserGroupInformation, DataOutputBuffer class
     // are marked as LimitedPrivate
@@ -699,7 +714,7 @@ public class ApplicationMaster {
     FinalApplicationStatus appStatus;
     String appMessage = null;
     boolean success = true;
-    if (numFailedContainers.get() == 0 && 
+    if (numFailedContainers.get() == 0 &&
         numCompletedContainers.get() == numTotalContainers) {
       appStatus = FinalApplicationStatus.SUCCEEDED;
     } else {
