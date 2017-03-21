@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -84,6 +84,7 @@ import static io.hops.tensorflow.ClientArguments.AM_MEMORY;
 import static io.hops.tensorflow.ClientArguments.AM_PRIORITY;
 import static io.hops.tensorflow.ClientArguments.AM_VCORES;
 import static io.hops.tensorflow.ClientArguments.ARGS;
+import static io.hops.tensorflow.ClientArguments.ATTEMPT_FAILURES_VALIDITY_INTERVAL;
 import static io.hops.tensorflow.ClientArguments.CREATE;
 import static io.hops.tensorflow.ClientArguments.DEBUG;
 import static io.hops.tensorflow.ClientArguments.DOMAIN;
@@ -97,9 +98,11 @@ import static io.hops.tensorflow.ClientArguments.MAIN_RELATIVE;
 import static io.hops.tensorflow.ClientArguments.MEMORY;
 import static io.hops.tensorflow.ClientArguments.MODIFY_ACLS;
 import static io.hops.tensorflow.ClientArguments.NAME;
+import static io.hops.tensorflow.ClientArguments.NODE_LABEL_EXPRESSION;
 import static io.hops.tensorflow.ClientArguments.PRIORITY;
 import static io.hops.tensorflow.ClientArguments.PSES;
 import static io.hops.tensorflow.ClientArguments.QUEUE;
+import static io.hops.tensorflow.ClientArguments.TIMEOUT;
 import static io.hops.tensorflow.ClientArguments.VCORES;
 import static io.hops.tensorflow.ClientArguments.VIEW_ACLS;
 import static io.hops.tensorflow.ClientArguments.WORKERS;
@@ -108,100 +111,81 @@ import static io.hops.tensorflow.ClientArguments.createOptions;
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public class Client {
-
+  
   private static final Log LOG = LogFactory.getLog(Client.class);
   
   // Configuration
   private Configuration conf;
   private YarnClient yarnClient;
   // Application master specific info to register a new Application with RM/ASM
-  private String appName = "";
+  private String appName;
   // App master priority
-  private int amPriority = 0;
+  private int amPriority;
   // Queue for App master
-  private String amQueue = "";
+  private String amQueue;
   // Amt. of memory resource to request for to run the App Master
-  private int amMemory = 10;
+  private int amMemory;
   // Amt. of virtual core resource to request for to run the App Master
-  private int amVCores = 1;
-
+  private int amVCores;
+  
   // Application master jar file
-  private String appMasterJar = "";
+  private String appMasterJar;
   // Main class to invoke application master
   private final String appMasterMainClass;
-
-  /*
-  // Shell command to be executed 
-  private String shellCommand = "";
-  // Location of shell script 
-  private String shellScriptPath = "";
-  */
   
   // Args to be passed to the application
-  //private String[] shellArgs = new String[] {};
-  private String[] pyArgs = new String[] {};
-  // Env variables to be setup for the shell command
+  private String[] arguments = new String[]{};
+  // Env variables to be setup for the Python application
   private Map<String, String> environment = new HashMap<>();
-  // Shell Command Container priority
-  private int pyAppPriority = 0;
-
-  // Amt of memory to request for container in which shell script will be executed
-  private int containerMemory = 10;
-  // Amt. of virtual cores to request for container in which shell script will be executed
-  private int containerVirtualCores = 1;
-  private String nodeLabelExpression = null;
-
+  // Python application Container priority
+  private int priority;
+  
+  // Amt of memory to request for container in which Python application will be executed
+  private int memory;
+  // Amt. of virtual cores to request for container in which Python application will be executed
+  private int vcores;
+  private String nodeLabelExpression;
+  
   // log4j.properties file
   // if available, add to local resources and set into classpath
-  private String log4jPropFile = "";
-
+  private String log4jPropFile;
+  
   // Start time for client
   private final long clientStartTime = System.currentTimeMillis();
   // Timeout threshold for client. Kill app after time interval expires.
-  private long clientTimeout = 600000;
-
+  private long clientTimeout;
+  
   // flag to indicate whether to keep containers across application attempts.
-  private boolean keepContainers = false;
-
-  private long attemptFailuresValidityInterval = -1;
-
+  private boolean keepContainers;
+  
+  private long attemptFailuresValidityInterval;
+  
   // Debug flag
-  boolean debugFlag = false;
-
+  boolean debugFlag;
+  
   // Timeline domain ID
-  private String domainId = null;
-
+  private String domainId;
+  
   // Flag to indicate whether to create the domain of the given ID
-  private boolean toCreateDomain = false;
-
+  private boolean toCreateDomain;
+  
   // Timeline domain reader access control
-  private String viewACLs = null;
-
+  private String viewACLs;
+  
   // Timeline domain writer access control
-  private String modifyACLs = null;
-
+  private String modifyACLs;
+  
   // Command line options
   private Options opts;
-
-  /*
-  private static final String shellCommandPath = "shellCommands";
-  */
   
-  //private static final String pythonArgsPath = "shellArgs";
   private static final String APP_MASTER_JAR_PATH = "AppMaster.jar";
-  // Hardcoded path to custom log_properties
-  private static final String LOG4J_PATH = "log4j.properties";
-
-  /*
-  public static final String SCRIPT_PATH = "ExecScript";
-  */
   
-  // Added for YarnTF
   private CommandLine cliParser;
   private String mainRelativePath; // relative for worker or ps
   
   /**
-   * @param args Command line arguments
+   * @param args
+   *     Command line arguments
    */
   public static void main(String[] args) {
     boolean result = false;
@@ -230,13 +214,13 @@ public class Client {
     LOG.error("Application failed to complete successfully");
     System.exit(2);
   }
-
+  
   /**
    */
-  public Client(Configuration conf) throws Exception  {
+  public Client(Configuration conf) throws Exception {
     this(ApplicationMaster.class.getName(), conf);
   }
-
+  
   Client(String appMasterMainClass, Configuration conf) {
     this.conf = conf;
     this.appMasterMainClass = appMasterMainClass;
@@ -244,34 +228,36 @@ public class Client {
     yarnClient.init(conf);
     opts = createOptions();
   }
-
+  
   /**
    */
-  public Client() throws Exception  {
+  public Client() throws Exception {
     this(new YarnConfiguration());
   }
-
+  
   /**
    * Helper function to print out usage
    */
   private void printUsage() {
     new HelpFormatter().printHelp("Client", opts);
   }
-
+  
   /**
    * Parse command line options
-   * @param args Parsed command line options
+   *
+   * @param args
+   *     Parsed command line options
    * @return Whether the init was successful to run the client
    * @throws ParseException
    */
   public boolean init(String[] args) throws ParseException {
-
+    
     cliParser = new GnuParser().parse(opts, args);
-
+    
     if (args.length == 0) {
       throw new IllegalArgumentException("No args specified for client to initialize");
     }
-
+    
     if (cliParser.hasOption(LOG_PROPERTIES)) {
       String log4jPath = cliParser.getOptionValue(LOG_PROPERTIES);
       try {
@@ -280,28 +266,28 @@ public class Client {
         LOG.warn("Can not set up custom log4j properties. " + e);
       }
     }
-
+    
     if (cliParser.hasOption(HELP)) {
       printUsage();
       return false;
     }
-
+    
     if (cliParser.hasOption(DEBUG)) {
       debugFlag = true;
-
+      
     }
-
+    
     if (cliParser.hasOption(KEEP_CONTAINERS_ACROSS_APPLICATION_ATTEMPTS)) {
       LOG.info(KEEP_CONTAINERS_ACROSS_APPLICATION_ATTEMPTS);
       keepContainers = true;
     }
-
-    appName = cliParser.getOptionValue(NAME, "yarntf");
+    
+    appName = cliParser.getOptionValue(NAME, "YarnTF");
     amPriority = Integer.parseInt(cliParser.getOptionValue(AM_PRIORITY, "0"));
     amQueue = cliParser.getOptionValue(QUEUE, "default");
     amMemory = Integer.parseInt(cliParser.getOptionValue(AM_MEMORY, "10"));
     amVCores = Integer.parseInt(cliParser.getOptionValue(AM_VCORES, "1"));
-
+    
     if (amMemory < 0) {
       throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
           + " Specified memory=" + amMemory);
@@ -310,29 +296,15 @@ public class Client {
       throw new IllegalArgumentException("Invalid virtual cores specified for application master, exiting."
           + " Specified virtual cores=" + amVCores);
     }
-
+    
     if (!cliParser.hasOption(AM_JAR)) {
       throw new IllegalArgumentException("No jar file specified for application master");
     }
-
+    
     appMasterJar = cliParser.getOptionValue(AM_JAR);
-
-    /*
-    if (!cliParser.hasOption("shell_command") && !cliParser.hasOption("shell_script")) {
-      throw new IllegalArgumentException(
-          "No shell command or shell script specified to be executed by application master");
-    } else if (cliParser.hasOption("shell_command") && cliParser.hasOption("shell_script")) {
-      throw new IllegalArgumentException("Can not specify shell_command option " +
-          "and shell_script option at the same time");
-    } else if (cliParser.hasOption("shell_command")) {
-      shellCommand = cliParser.getOptionValue("shell_command");
-    } else {
-      shellScriptPath = cliParser.getOptionValue("shell_script");
-    }
-    */
     
     if (cliParser.hasOption(ARGS)) {
-      pyArgs = cliParser.getOptionValues(ARGS);
+      arguments = cliParser.getOptionValues(ARGS);
     }
     if (cliParser.hasOption(ENV)) {
       String envs[] = cliParser.getOptionValues(ENV);
@@ -345,39 +317,38 @@ public class Client {
         }
         String key = env.substring(0, index);
         String val = "";
-        if (index < (env.length()-1)) {
-          val = env.substring(index+1);
+        if (index < (env.length() - 1)) {
+          val = env.substring(index + 1);
         }
         environment.put(key, val);
       }
     }
-    pyAppPriority = Integer.parseInt(cliParser.getOptionValue(PRIORITY, "0"));
-
-    containerMemory = Integer.parseInt(cliParser.getOptionValue(MEMORY, "10"));
-    containerVirtualCores = Integer.parseInt(cliParser.getOptionValue(VCORES, "1"));
+    priority = Integer.parseInt(cliParser.getOptionValue(PRIORITY, "0"));
+    
+    memory = Integer.parseInt(cliParser.getOptionValue(MEMORY, "10"));
+    vcores = Integer.parseInt(cliParser.getOptionValue(VCORES, "1"));
     int numWorkers = Integer.parseInt(cliParser.getOptionValue(WORKERS, "1"));
     int numPses = Integer.parseInt(cliParser.getOptionValue(PSES, "1"));
     
-
-    if (containerMemory < 0 || containerVirtualCores < 0 || numWorkers < 1 || numPses < 1) {
+    
+    if (memory < 0 || vcores < 0 || numWorkers < 1 || numPses < 1) {
       throw new IllegalArgumentException("Invalid no. of containers or container memory/vcores specified,"
           + " exiting."
-          + " Specified containerMemory=" + containerMemory
-          + ", containerVirtualCores=" + containerVirtualCores
+          + " Specified memory=" + memory
+          + ", vcores=" + vcores
           + ", numWorkers=" + numWorkers
           + ", numPses=" + numPses);
     }
     
-    nodeLabelExpression = cliParser.getOptionValue("node_label_expression", null);
-
-    clientTimeout = Integer.parseInt(cliParser.getOptionValue("timeout", "600000"));
-
-    attemptFailuresValidityInterval =
-        Long.parseLong(cliParser.getOptionValue(
-          "attempt_failures_validity_interval", "-1"));
-
-    log4jPropFile = cliParser.getOptionValue("log_properties", "");
-
+    nodeLabelExpression = cliParser.getOptionValue(NODE_LABEL_EXPRESSION, null);
+    
+    clientTimeout = Integer.parseInt(cliParser.getOptionValue(TIMEOUT, "600000"));
+    
+    attemptFailuresValidityInterval = Long.parseLong(
+        cliParser.getOptionValue(ATTEMPT_FAILURES_VALIDITY_INTERVAL, "-1"));
+    
+    log4jPropFile = cliParser.getOptionValue(LOG_PROPERTIES, "");
+    
     // Get timeline domain options
     if (cliParser.hasOption(DOMAIN)) {
       domainId = cliParser.getOptionValue(DOMAIN);
@@ -389,12 +360,13 @@ public class Client {
         modifyACLs = cliParser.getOptionValue(MODIFY_ACLS);
       }
     }
-
+    
     return true;
   }
-
+  
   /**
    * Main run function for the client
+   *
    * @return true if application completed successfully
    * @throws IOException
    * @throws YarnException
@@ -409,13 +381,13 @@ public class Client {
   public ApplicationId submitApplication() throws IOException, YarnException {
     LOG.info("Running Client");
     yarnClient.start();
-
+    
     logClusterState();
-
+    
     if (domainId != null && domainId.length() > 0 && toCreateDomain) {
       prepareTimelineDomain();
     }
-
+    
     // Get a new application id
     YarnClientApplication app = yarnClient.createApplication();
     GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
@@ -431,22 +403,20 @@ public class Client {
     // Ignore the response as either a valid response object is returned on success
     // or an exception thrown to denote some form of a failure
     LOG.info("Submitting application to ASM");
-
+    
     yarnClient.submitApplication(appContext);
-
+    
     // TODO
     // Try submitting the same request again
     // app submission failure?
-
     return appId;
-
   }
   
   private void logClusterState() throws IOException, YarnException {
     YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
     LOG.info("Got Cluster metric info from ASM"
         + ", numNodeManagers=" + clusterMetrics.getNumNodeManagers());
-  
+    
     List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(
         NodeState.RUNNING);
     LOG.info("Got Cluster node info from ASM");
@@ -457,7 +427,7 @@ public class Client {
           + ", nodeRackName" + node.getRackName()
           + ", nodeNumContainers" + node.getNumContainers());
     }
-  
+    
     QueueInfo queueInfo = yarnClient.getQueueInfo(this.amQueue);
     LOG.info("Queue info"
         + ", queueName=" + queueInfo.getQueueName()
@@ -465,7 +435,7 @@ public class Client {
         + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
         + ", queueApplicationCount=" + queueInfo.getApplications().size()
         + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());
-  
+    
     List<QueueUserACLInfo> listAclInfo = yarnClient.getQueueAclsInfo();
     for (QueueUserACLInfo aclInfo : listAclInfo) {
       for (QueueACL userAcl : aclInfo.getUserAcls()) {
@@ -484,7 +454,7 @@ public class Client {
     // Dump out information about cluster capability as seen by the resource manager
     int maxMem = appResponse.getMaximumResourceCapability().getMemory();
     LOG.info("Max mem capabililty of resources in this cluster " + maxMem);
-  
+    
     // A resource ask cannot exceed the max.
     if (amMemory > maxMem) {
       LOG.info("AM memory specified above max threshold of cluster. Using max value."
@@ -492,10 +462,10 @@ public class Client {
           + ", max=" + maxMem);
       amMemory = maxMem;
     }
-  
+    
     int maxVCores = appResponse.getMaximumResourceCapability().getVirtualCores();
     LOG.info("Max virtual cores capabililty of resources in this cluster " + maxVCores);
-  
+    
     if (amVCores > maxVCores) {
       LOG.info("AM virtual cores specified above max threshold of cluster. "
           + "Using max value." + ", specified=" + amVCores
@@ -511,10 +481,10 @@ public class Client {
     
     Map<String, String> launchEnv = setupLaunchEnv(fs, appId);
     Map<String, LocalResource> localResources = prepareLocalResources(fs, appId);
-  
+    
     // Set the necessary command to execute the application master
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
-  
+    
     // Set java executable command
     LOG.info("Setting up app master command");
     vargs.add(Environment.JAVA_HOME.$$() + "/bin/java");
@@ -524,45 +494,45 @@ public class Client {
     vargs.add(appMasterMainClass);
     // Set params for Application Master
     
-    vargs.add(newArg(MEMORY, String.valueOf(containerMemory)));
-    vargs.add(newArg(VCORES, String.valueOf(containerVirtualCores)));
-    vargs.add(newArg(PRIORITY, String.valueOf(pyAppPriority)));
+    vargs.add(newArg(MEMORY, String.valueOf(memory)));
+    vargs.add(newArg(VCORES, String.valueOf(vcores)));
+    vargs.add(newArg(PRIORITY, String.valueOf(priority)));
     
     vargs.add(newArg(MAIN_RELATIVE, mainRelativePath));
     vargs.add(forwardArgument(WORKERS));
     vargs.add(forwardArgument(PSES));
-  
+    
     for (Map.Entry<String, String> entry : environment.entrySet()) {
       vargs.add(newArg(ENV, entry.getKey() + "=" + entry.getValue()));
     }
     if (debugFlag) {
       vargs.add("--debug");
     }
-  
+    
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/AppMaster.stdout");
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/AppMaster.stderr");
-  
+    
     // Get final commmand
     StringBuilder command = new StringBuilder();
     for (CharSequence str : vargs) {
       command.append(str).append(" ");
     }
-  
+    
     LOG.info("Completed setting up app master command " + command.toString());
     List<String> commands = new ArrayList<String>();
     commands.add(command.toString());
-  
+    
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer = ContainerLaunchContext.newInstance(
         localResources, launchEnv, commands, null, null, null);
-  
+    
     // Set the necessary security tokens as needed
     // amContainer.setContainerTokens(containerToken);
     
     // Service data is a binary blob that can be passed to the application
     // Not needed in this scenario
     // amContainer.setServiceData(serviceData);
-  
+    
     // Setup security tokens
     if (UserGroupInformation.isSecurityEnabled()) {
       // Note: Credentials class is marked as LimitedPrivate for HDFS and MapReduce
@@ -572,7 +542,7 @@ public class Client {
         throw new IOException(
             "Can't get Master Kerberos principal for the RM to use as renewer");
       }
-    
+      
       // For now, only getting tokens for the default file-system.
       final Token<?> tokens[] =
           fs.addDelegationTokens(tokenRenewer, credentials);
@@ -602,31 +572,31 @@ public class Client {
       ContainerLaunchContext containerContext) {
     // set the application name
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
-  
+    
     appContext.setKeepContainersAcrossApplicationAttempts(keepContainers);
     appContext.setApplicationName(appName);
-  
+    
     if (attemptFailuresValidityInterval >= 0) {
       appContext.setAttemptFailuresValidityInterval(attemptFailuresValidityInterval);
     }
-  
+    
     if (null != nodeLabelExpression) {
       appContext.setNodeLabelExpression(nodeLabelExpression);
     }
-  
+    
     // Set up resource type requirements
     // For now, both memory and vcores are supported, so we set memory and
     // vcores requirements
     Resource capability = Resource.newInstance(amMemory, amVCores);
     appContext.setResource(capability);
-  
+    
     appContext.setAMContainerSpec(containerContext);
-  
+    
     // Set the priority for the application master
     // TODO - what is the range for priority? how to decide?
     Priority pri = Priority.newInstance(amPriority);
     appContext.setPriority(pri);
-  
+    
     // Set the queue to which this application is to be submitted in the RM
     appContext.setQueue(amQueue);
     
@@ -634,42 +604,9 @@ public class Client {
   }
   
   private Map<String, String> setupLaunchEnv(FileSystem fs, ApplicationId appId) throws IOException {
-    /*
-    // The shell script has to be made available on the final container(s)
-    // where it will be executed.
-    // To do this, we need to first copy into the filesystem that is visible
-    // to the yarn framework.
-    // We do not need to set this as a local resource for the application
-    // master as the application master does not need it.
-    String hdfsShellScriptLocation = "";
-    long hdfsShellScriptLen = 0;
-    long hdfsShellScriptTimestamp = 0;
-    if (!shellScriptPath.isEmpty()) {
-      Path shellSrc = new Path(shellScriptPath);
-      String shellPathSuffix =
-          appName + "/" + appId.toString() + "/" + SCRIPT_PATH;
-      Path shellDst =
-          new Path(fs.getHomeDirectory(), shellPathSuffix);
-      fs.copyFromLocalFile(false, true, shellSrc, shellDst);
-      hdfsShellScriptLocation = shellDst.toUri().toString();
-      FileStatus shellFileStatus = fs.getFileStatus(shellDst);
-      hdfsShellScriptLen = shellFileStatus.getLen();
-      hdfsShellScriptTimestamp = shellFileStatus.getModificationTime();
-    }
-    */
-    
     // Set the env variables to be setup in the env where the application master will be run
     LOG.info("Set the environment for the application master");
     Map<String, String> env = new HashMap<String, String>();
-    
-    /*
-    // put location of shell script into env
-    // using the env info, the application master will create the correct local resource for the
-    // eventual containers that will be launched to execute the shell scripts
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION, hdfsShellScriptLocation);
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTTIMESTAMP, Long.toString(hdfsShellScriptTimestamp));
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLEN, Long.toString(hdfsShellScriptLen));
-    */
     
     if (domainId != null && domainId.length() > 0) {
       env.put(Constants.YARNTFTIMELINEDOMAIN, domainId);
@@ -712,39 +649,32 @@ public class Client {
     LOG.info("Copy App Master jar from local filesystem and add to local environment");
     // Copy the application master jar to the filesystem
     // Create a local resource to point to the destination jar path
-    addToLocalResources(fs, appMasterJar, APP_MASTER_JAR_PATH, appId.toString(),
-        localResources, null);
+    addToLocalResources(fs, appMasterJar, APP_MASTER_JAR_PATH, appId.toString(), localResources, null);
     
     // Set the log4j properties if needed
     if (!log4jPropFile.isEmpty()) {
-      addToLocalResources(fs, log4jPropFile, LOG4J_PATH, appId.toString(),
-          localResources, null);
+      addToLocalResources(fs, log4jPropFile, Constants.LOG4J_PATH, appId.toString(), localResources, null);
     }
     
-    /*
-    if (!shellCommand.isEmpty()) {
-      addToLocalResources(fs, null, shellCommandPath, appId.toString(),
-          localResources, shellCommand);
-    }
-    */
-    
-    if (pyArgs.length > 0) {
-      addToLocalResources(fs, null, Constants.PY_ARGS_PATH, appId.toString(),
-          localResources, StringUtils.join(pyArgs, " "));
+    if (arguments.length > 0) {
+      addToLocalResources(fs, null, Constants.ARGS_PATH, appId.toString(), localResources,
+          StringUtils.join(arguments, " "));
     }
     
-    // YarnTF take over
-  
     addResource(fs, appId, cliParser.getOptionValue(AM_JAR), null, Constants.AM_JAR_PATH, null, localResources, null);
     
     DistributedCacheList dcl = populateDistributedCache(fs, appId);
     
-    // write distCacheList to HDFS and add to localResources
-    Path baseDir = new Path(fs.getHomeDirectory(), Constants.YARNTF_STAGING + "/" +  appId.toString());
+    // Write distCacheList to HDFS and add to localResources
+    Path baseDir = new Path(fs.getHomeDirectory(), Constants.YARNTF_STAGING + "/" + appId.toString());
     Path dclPath = new Path(baseDir, Constants.DIST_CACHE_PATH);
-    FSDataOutputStream ostream = fs.create(dclPath);
-    ostream.write(SerializationUtils.serialize(dcl));
-    ostream.close();
+    FSDataOutputStream ostream = null;
+    try {
+      ostream = fs.create(dclPath);
+      ostream.write(SerializationUtils.serialize(dcl));
+    } finally {
+      IOUtils.closeQuietly(ostream);
+    }
     FileStatus dclStatus = fs.getFileStatus(dclPath);
     LocalResource distCacheResource = LocalResource.newInstance(
         ConverterUtils.getYarnUrlFromURI(dclPath.toUri()),
@@ -761,7 +691,7 @@ public class Client {
     DistributedCacheList distCacheList = new DistributedCacheList();
     
     mainRelativePath = addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCacheList, null, null);
-  
+    
     StringBuilder pythonPath = new StringBuilder(Constants.LOCALIZED_PYTHON_DIR);
     if (cliParser.hasOption(FILES)) {
       String[] files = cliParser.getOptionValue(FILES).split(",");
@@ -790,14 +720,14 @@ public class Client {
       dstName = src.getName();
     }
     
-    Path baseDir = new Path(fs.getHomeDirectory(), Constants.YARNTF_STAGING + "/" +  appId.toString());
+    Path baseDir = new Path(fs.getHomeDirectory(), Constants.YARNTF_STAGING + "/" + appId.toString());
     String dstPath = dstDir + "/" + dstName;
     Path dst = new Path(baseDir, dstPath);
     
     fs.copyFromLocalFile(src, dst);
     FileStatus dstStatus = fs.getFileStatus(dst);
     
-    if (distCache !=  null) {
+    if (distCache != null) {
       distCache.add(new DistributedCacheList.Entry(
           dstPath, dst.toUri(), dstStatus.getLen(), dstStatus.getModificationTime()));
     }
@@ -820,9 +750,11 @@ public class Client {
   }
   
   /**
-   * Monitor the submitted application for completion. 
-   * Kill application if time expires. 
-   * @param appId Application Id of application to be monitored
+   * Monitor the submitted application for completion.
+   * Kill application if time expires.
+   *
+   * @param appId
+   *     Application Id of application to be monitored
    * @return true if application completed successfully
    * @throws YarnException
    * @throws IOException
@@ -831,19 +763,19 @@ public class Client {
   @InterfaceAudience.Private
   public boolean monitorApplication(ApplicationId appId)
       throws YarnException, IOException {
-
+    
     while (true) {
-
+      
       // Check app status every 1 second.
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
         LOG.debug("Thread sleep in monitoring loop interrupted");
       }
-
+      
       // Get application report for the appId we are interested in 
       ApplicationReport report = yarnClient.getApplicationReport(appId);
-
+      
       LOG.info("Got application report from ASM for"
           + ", appId=" + appId.getId()
           + ", clientToAMToken=" + report.getClientToAMToken()
@@ -856,41 +788,41 @@ public class Client {
           + ", distributedFinalState=" + report.getFinalApplicationStatus().toString()
           + ", appTrackingUrl=" + report.getTrackingUrl()
           + ", appUser=" + report.getUser());
-
+      
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       if (YarnApplicationState.FINISHED == state) {
         if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
           LOG.info("Application has completed successfully. Breaking monitoring loop");
           return true;
-        }
-        else {
+        } else {
           LOG.info("Application did finished unsuccessfully."
               + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
               + ". Breaking monitoring loop");
           return false;
         }
-      }
-      else if (YarnApplicationState.KILLED == state
+      } else if (YarnApplicationState.KILLED == state
           || YarnApplicationState.FAILED == state) {
         LOG.info("Application did not finish."
             + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
             + ". Breaking monitoring loop");
         return false;
       }
-
+      
       if (System.currentTimeMillis() > (clientStartTime + clientTimeout)) {
         LOG.info("Reached client specified timeout for application. Killing application");
         forceKillApplication(appId);
         return false;
       }
     }
-
+    
   }
-
+  
   /**
    * Kill a submitted application by sending a call to the ASM
-   * @param appId Application Id to be killed. 
+   *
+   * @param appId
+   *     Application Id to be killed.
    * @throws YarnException
    * @throws IOException
    */
@@ -901,24 +833,22 @@ public class Client {
     // TODO clarify whether multiple jobs with the same app id can be submitted and be running at 
     // the same time. 
     // If yes, can we kill a particular attempt only?
-
+    
     // Response can be ignored as it is non-null on success or 
     // throws an exception in case of failures
     yarnClient.killApplication(appId);
   }
-
+  
   private void addToLocalResources(FileSystem fs, String fileSrcPath,
       String fileDstPath, String appId, Map<String, LocalResource> localResources,
       String resources) throws IOException {
-    String suffix =
-        appName + "/" + appId + "/" + fileDstPath;
+    String suffix = appName + "/" + appId + "/" + fileDstPath;
     Path dst =
         new Path(fs.getHomeDirectory(), suffix);
     if (fileSrcPath == null) {
       FSDataOutputStream ostream = null;
       try {
-        ostream = FileSystem
-            .create(fs, dst, new FsPermission((short) 0710));
+        ostream = FileSystem.create(fs, dst, new FsPermission((short) 0710));
         ostream.writeUTF(resources);
       } finally {
         IOUtils.closeQuietly(ostream);
@@ -934,9 +864,9 @@ public class Client {
             scFileStatus.getLen(), scFileStatus.getModificationTime());
     localResources.put(fileDstPath, scRsrc);
   }
-
+  
   private void prepareTimelineDomain() {
-    TimelineClient timelineClient = null;
+    TimelineClient timelineClient;
     if (conf.getBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,
         YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED)) {
       timelineClient = TimelineClient.createTimelineClient();
@@ -952,13 +882,10 @@ public class Client {
       //but let's do it once we have client java library to query domains.
       TimelineDomain domain = new TimelineDomain();
       domain.setId(domainId);
-      domain.setReaders(
-          viewACLs != null && viewACLs.length() > 0 ? viewACLs : " ");
-      domain.setWriters(
-          modifyACLs != null && modifyACLs.length() > 0 ? modifyACLs : " ");
+      domain.setReaders(viewACLs != null && viewACLs.length() > 0 ? viewACLs : " ");
+      domain.setWriters(modifyACLs != null && modifyACLs.length() > 0 ? modifyACLs : " ");
       timelineClient.putDomain(domain);
-      LOG.info("Put the timeline domain: " +
-          TimelineUtils.dumpTimelineRecordtoJSON(domain));
+      LOG.info("Put the timeline domain: " + TimelineUtils.dumpTimelineRecordtoJSON(domain));
     } catch (Exception e) {
       LOG.error("Error when putting the timeline domain", e);
     } finally {

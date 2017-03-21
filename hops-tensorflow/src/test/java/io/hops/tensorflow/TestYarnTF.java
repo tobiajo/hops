@@ -37,9 +37,9 @@ import static io.hops.tensorflow.ClientArguments.PSES;
 import static io.hops.tensorflow.ClientArguments.VCORES;
 import static io.hops.tensorflow.ClientArguments.WORKERS;
 
-public class TestYarnTf extends TestCluster {
+public class TestYarnTF extends TestCluster {
   
-  private static final Log LOG = LogFactory.getLog(TestYarnTf.class);
+  private static final Log LOG = LogFactory.getLog(TestYarnTF.class);
   
   @Test(timeout = 90000)
   public void testCreateClusterSpec() throws Exception {
@@ -55,11 +55,11 @@ public class TestYarnTf extends TestCluster {
         "--" + ARGS, "hello world"
     };
     
-    LOG.info("Initializing DS Client");
+    LOG.info("Initializing YarnTF Client");
     final Client client = new Client(new Configuration(yarnCluster.getConfig()));
     boolean initSuccess = client.init(args);
     Assert.assertTrue(initSuccess);
-    LOG.info("Running DS Client");
+    LOG.info("Running YarnTF Client");
     final ApplicationId appId = client.submitApplication();
     
     new Thread(new Runnable() {
