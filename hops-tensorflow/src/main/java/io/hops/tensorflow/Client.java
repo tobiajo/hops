@@ -79,7 +79,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import static io.hops.tensorflow.ClientArguments.*;
+import static io.hops.tensorflow.ClientArguments.AM_JAR;
+import static io.hops.tensorflow.ClientArguments.AM_MEMORY;
+import static io.hops.tensorflow.ClientArguments.AM_PRIORITY;
+import static io.hops.tensorflow.ClientArguments.AM_VCORES;
+import static io.hops.tensorflow.ClientArguments.ARGS;
+import static io.hops.tensorflow.ClientArguments.CREATE;
+import static io.hops.tensorflow.ClientArguments.DEBUG;
+import static io.hops.tensorflow.ClientArguments.DOMAIN;
+import static io.hops.tensorflow.ClientArguments.ENV;
+import static io.hops.tensorflow.ClientArguments.FILES;
+import static io.hops.tensorflow.ClientArguments.HELP;
+import static io.hops.tensorflow.ClientArguments.KEEP_CONTAINERS_ACROSS_APPLICATION_ATTEMPTS;
+import static io.hops.tensorflow.ClientArguments.LOG_PROPERTIES;
+import static io.hops.tensorflow.ClientArguments.MAIN;
+import static io.hops.tensorflow.ClientArguments.MAIN_RELATIVE;
+import static io.hops.tensorflow.ClientArguments.MEMORY;
+import static io.hops.tensorflow.ClientArguments.MODIFY_ACLS;
+import static io.hops.tensorflow.ClientArguments.NAME;
+import static io.hops.tensorflow.ClientArguments.PRIORITY;
+import static io.hops.tensorflow.ClientArguments.PSES;
+import static io.hops.tensorflow.ClientArguments.QUEUE;
+import static io.hops.tensorflow.ClientArguments.VCORES;
+import static io.hops.tensorflow.ClientArguments.VIEW_ACLS;
+import static io.hops.tensorflow.ClientArguments.WORKERS;
+import static io.hops.tensorflow.ClientArguments.createOptions;
 
 @InterfaceAudience.Public
 @InterfaceStability.Unstable

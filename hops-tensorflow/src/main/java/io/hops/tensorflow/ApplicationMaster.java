@@ -91,7 +91,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.hops.tensorflow.ApplicationMasterArguments.*;
+import static io.hops.tensorflow.ApplicationMasterArguments.APP_ATTEMPT_ID;
+import static io.hops.tensorflow.ApplicationMasterArguments.DEBUG;
+import static io.hops.tensorflow.ApplicationMasterArguments.ENV;
+import static io.hops.tensorflow.ApplicationMasterArguments.HELP;
+import static io.hops.tensorflow.ApplicationMasterArguments.MAIN_RELATIVE;
+import static io.hops.tensorflow.ApplicationMasterArguments.MEMORY;
+import static io.hops.tensorflow.ApplicationMasterArguments.PRIORITY;
+import static io.hops.tensorflow.ApplicationMasterArguments.PSES;
+import static io.hops.tensorflow.ApplicationMasterArguments.VCORES;
+import static io.hops.tensorflow.ApplicationMasterArguments.WORKERS;
+import static io.hops.tensorflow.ApplicationMasterArguments.createOptions;
 
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
