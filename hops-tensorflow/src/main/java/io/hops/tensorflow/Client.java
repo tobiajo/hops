@@ -139,15 +139,18 @@ public class Client {
   // Main class to invoke application master
   private final String appMasterMainClass;
 
+  /*
   // Shell command to be executed 
   private String shellCommand = "";
   // Location of shell script 
   private String shellScriptPath = "";
-  // Args to be passed to the shell command
+  */
+  
+  // Args to be passed to the application
   private String[] shellArgs = new String[] {};
-  // Env variables to be setup for the shell command 
+  // Env variables to be setup for the shell command
   private Map<String, String> shellEnv = new HashMap<String, String>();
-  // Shell Command Container priority 
+  // Shell Command Container priority
   private int shellCmdPriority = 0;
 
   // Amt of memory to request for container in which shell script will be executed
@@ -158,8 +161,8 @@ public class Client {
   private int numContainers = 1;
   private String nodeLabelExpression = null;
 
-  // log4j.properties file 
-  // if available, add to local resources and set into classpath 
+  // log4j.properties file
+  // if available, add to local resources and set into classpath
   private String log4jPropFile = "";
 
   // Start time for client
@@ -190,13 +193,18 @@ public class Client {
   // Command line options
   private Options opts;
 
+  /*
   private static final String shellCommandPath = "shellCommands";
-  private static final String shellArgsPath = "shellArgs";
+  */
+  
+  private static final String pythonArgsPath = "shellArgs";
   private static final String appMasterJarPath = "AppMaster.jar";
   // Hardcoded path to custom log_properties
   private static final String log4jPath = "log4j.properties";
 
+  /*
   public static final String SCRIPT_PATH = "ExecScript";
+  */
   
   // Added for YarnTF
   public static final String AM_JAR_PATH = "AppMaster.jar";
@@ -204,9 +212,10 @@ public class Client {
   public static final String LOCALIZED_PYTHON_DIR = "__pyfiles__";
   public static final String YARNTF_STAGING = ".YarnTF";
   private CommandLine cliParser;
+  private String mainRelativePath; // relative for worker or ps
   
   /**
-   * @param args Command line arguments 
+   * @param args Command line arguments
    */
   public static void main(String[] args) {
     boolean result = false;
@@ -265,7 +274,7 @@ public class Client {
 
   /**
    * Parse command line options
-   * @param args Parsed command line options 
+   * @param args Parsed command line options
    * @return Whether the init was successful to run the client
    * @throws ParseException
    */
@@ -322,6 +331,7 @@ public class Client {
 
     appMasterJar = cliParser.getOptionValue("jar");
 
+    /*
     if (!cliParser.hasOption("shell_command") && !cliParser.hasOption("shell_script")) {
       throw new IllegalArgumentException(
           "No shell command or shell script specified to be executed by application master");
@@ -333,6 +343,8 @@ public class Client {
     } else {
       shellScriptPath = cliParser.getOptionValue("shell_script");
     }
+    */
+    
     if (cliParser.hasOption("shell_args")) {
       shellArgs = cliParser.getOptionValues("shell_args");
     }
@@ -428,7 +440,7 @@ public class Client {
     
     // Submit the application to the applications manager
     // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
-    // Ignore the response as either a valid response object is returned on success 
+    // Ignore the response as either a valid response object is returned on success
     // or an exception thrown to denote some form of a failure
     LOG.info("Submitting application to ASM");
 
@@ -529,6 +541,7 @@ public class Client {
     vargs.add("--num_containers " + String.valueOf(numContainers));
     vargs.add("--priority " + String.valueOf(shellCmdPriority));
     
+    vargs.add(newArg(ApplicationMasterArguments.MAIN_RELATIVE, mainRelativePath));
     vargs.add(forwardArgument(WORKERS));
     vargs.add(forwardArgument(PSES));
   
@@ -590,8 +603,12 @@ public class Client {
     return amContainer;
   }
   
-  private String forwardArgument(String arg) {
-    return "--" + arg + " " + cliParser.getOptionValue(arg);
+  private String newArg(String param, String value) {
+    return "--" + param + " " + value;
+  }
+  
+  private String forwardArgument(String param) {
+    return newArg(param, cliParser.getOptionValue(param));
   }
   
   private ApplicationSubmissionContext createApplicationSubmissionContext(YarnClientApplication app,
@@ -630,6 +647,7 @@ public class Client {
   }
   
   private Map<String, String> setupLaunchEnv(FileSystem fs, ApplicationId appId) throws IOException {
+    /*
     // The shell script has to be made available on the final container(s)
     // where it will be executed.
     // To do this, we need to first copy into the filesystem that is visible
@@ -651,17 +669,21 @@ public class Client {
       hdfsShellScriptLen = shellFileStatus.getLen();
       hdfsShellScriptTimestamp = shellFileStatus.getModificationTime();
     }
+    */
     
     // Set the env variables to be setup in the env where the application master will be run
     LOG.info("Set the environment for the application master");
     Map<String, String> env = new HashMap<String, String>();
     
+    /*
     // put location of shell script into env
     // using the env info, the application master will create the correct local resource for the
     // eventual containers that will be launched to execute the shell scripts
     env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION, hdfsShellScriptLocation);
     env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTTIMESTAMP, Long.toString(hdfsShellScriptTimestamp));
     env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLEN, Long.toString(hdfsShellScriptLen));
+    */
+    
     if (domainId != null && domainId.length() > 0) {
       env.put(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN, domainId);
     }
@@ -712,13 +734,15 @@ public class Client {
           localResources, null);
     }
     
+    /*
     if (!shellCommand.isEmpty()) {
       addToLocalResources(fs, null, shellCommandPath, appId.toString(),
           localResources, shellCommand);
     }
+    */
     
     if (shellArgs.length > 0) {
-      addToLocalResources(fs, null, shellArgsPath, appId.toString(),
+      addToLocalResources(fs, null, pythonArgsPath, appId.toString(),
           localResources, StringUtils.join(shellArgs, " "));
     }
     
@@ -749,9 +773,7 @@ public class Client {
   private DistributedCacheList populateDistributedCache(FileSystem fs, ApplicationId appId) throws IOException {
     DistributedCacheList distCacheList = new DistributedCacheList();
     
-    if (cliParser.hasOption(MAIN)) {
-      addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCacheList, null, null);
-    }
+    mainRelativePath = addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCacheList, null, null);
   
     StringBuilder pythonPath = new StringBuilder(LOCALIZED_PYTHON_DIR);
     if (cliParser.hasOption(PY_FILES)) {
@@ -769,7 +791,7 @@ public class Client {
     return distCacheList;
   }
   
-  private void addResource(FileSystem fs, ApplicationId appId, String srcPath, String dstDir, String dstName,
+  private String addResource(FileSystem fs, ApplicationId appId, String srcPath, String dstDir, String dstName,
       DistributedCacheList distCache, Map<String, LocalResource> localResources, StringBuilder pythonPath) throws
       IOException {
     Path src = new Path(srcPath);
@@ -806,6 +828,8 @@ public class Client {
     if (pythonPath != null) {
       pythonPath.append(File.pathSeparator).append(dstPath);
     }
+    
+    return dstName;
   }
   
   /**

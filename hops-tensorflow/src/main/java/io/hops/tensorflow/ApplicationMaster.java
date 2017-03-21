@@ -236,14 +236,16 @@ public class ApplicationMaster {
   // Only request for more if the original requirement changes.
   @VisibleForTesting
   protected AtomicInteger numRequestedContainers = new AtomicInteger();
-
+  
   // Shell command to be executed
   private String shellCommand = "";
   // Args to be passed to the shell command
   private String shellArgs = "";
+  
   // Env variables to be setup for the shell command
   private Map<String, String> shellEnv = new HashMap<String, String>();
 
+  /*
   // Location of shell script ( obtained from info set in env )
   // Shell script path in fs
   private String scriptPath = "";
@@ -251,19 +253,25 @@ public class ApplicationMaster {
   private long shellScriptPathTimestamp = 0;
   // File length needed for local resource
   private long shellScriptPathLen = 0;
+  */
 
   // Timeline domain ID
   private String domainId = null;
 
+  /*
   // Hardcoded path to shell script in launch container's local env
   private static final String ExecShellStringPath = Client.SCRIPT_PATH + ".sh";
   private static final String ExecBatScripStringtPath = Client.SCRIPT_PATH
       + ".bat";
+  */
 
   // Hardcoded path to custom log_properties
   private static final String log4jPath = "log4j.properties";
 
+  /*
   private static final String shellCommandPath = "shellCommands";
+  */
+  
   private static final String shellArgsPath = "shellArgs";
 
   private volatile boolean done;
@@ -277,8 +285,10 @@ public class ApplicationMaster {
   @VisibleForTesting
   TimelineClient timelineClient;
 
+  /*
   private final String linux_bash_command = "bash";
   private final String windows_command = "cmd /c";
+  */
   
   // YarnTF stuff
   private CommandLine cliParser;
@@ -422,6 +432,7 @@ public class ApplicationMaster {
         + appAttemptID.getApplicationId().getClusterTimestamp()
         + ", attemptId=" + appAttemptID.getAttemptId());
 
+    /*
     if (!fileExist(shellCommandPath)
         && envs.get(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION).isEmpty()) {
       throw new IllegalArgumentException(
@@ -430,11 +441,12 @@ public class ApplicationMaster {
 
     if (fileExist(shellCommandPath)) {
       shellCommand = readContent(shellCommandPath);
-    }
+    }*/
 
     if (fileExist(shellArgsPath)) {
       shellArgs = readContent(shellArgsPath);
     }
+    
 
     if (cliParser.hasOption("shell_env")) {
       String shellEnvs[] = cliParser.getOptionValues("shell_env");
@@ -454,6 +466,7 @@ public class ApplicationMaster {
       }
     }
 
+    /*
     if (envs.containsKey(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION)) {
       scriptPath = envs.get(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION);
 
@@ -474,6 +487,7 @@ public class ApplicationMaster {
             "Illegal values in env for shell script path");
       }
     }
+    */
 
     if (envs.containsKey(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN)) {
       domainId = envs.get(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN);
@@ -995,6 +1009,7 @@ public class ApplicationMaster {
         localResources.put(entry.relativePath, distRsrc);
       }
 
+      /*
       // The container for the eventual shell commands needs its own local
       // resources too.
       // In this scenario, if a shell script is specified, we need to have it
@@ -1043,10 +1058,14 @@ public class ApplicationMaster {
             ExecShellStringPath, shellRsrc);
         shellCommand = Shell.WINDOWS ? windows_command : linux_bash_command;
       }
+      */
 
       // Set the necessary command to execute on the allocated container
       Vector<CharSequence> vargs = new Vector<CharSequence>(5);
 
+      vargs.add("python " + cliParser.getOptionValue(MAIN_RELATIVE));
+      
+      /*
       // Set executable command
       vargs.add(shellCommand);
       // Set shell script path
@@ -1054,9 +1073,11 @@ public class ApplicationMaster {
         vargs.add(Shell.WINDOWS ? ExecBatScripStringtPath
             : ExecShellStringPath);
       }
+      */
 
       // Set args for the shell command if any
       vargs.add(shellArgs);
+      
       // Add log redirect params
       vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
       vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
@@ -1089,6 +1110,7 @@ public class ApplicationMaster {
     }
   }
 
+  /*
   private void renameScriptFile(final Path renamedScriptPath)
       throws IOException, InterruptedException {
     appSubmitterUgi.doAs(new PrivilegedExceptionAction<Void>() {
@@ -1102,6 +1124,7 @@ public class ApplicationMaster {
     LOG.info("User " + appSubmitterUgi.getUserName()
         + " added suffix(.sh/.bat) to script file as " + renamedScriptPath);
   }
+  */
 
   /**
    * Setup the request that will be sent to the RM for the container ask.

@@ -105,8 +105,6 @@ public class TestYarnTF extends TestCluster {
         APPMASTER_JAR,
         "--num_containers",
         "5",
-        "--shell_command",
-        "python create_cluster_spec.py",
         "--master_memory",
         "256",
         "--master_vcores",
@@ -120,7 +118,9 @@ public class TestYarnTF extends TestCluster {
         "--workers",
         "4",
         "--pses",
-        "1"
+        "1",
+        "--" + ClientArguments.ARGS,
+        "hello world"
     };
     
     LOG.info("Initializing DS Client");

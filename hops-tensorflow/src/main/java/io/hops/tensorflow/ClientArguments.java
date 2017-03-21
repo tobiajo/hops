@@ -17,7 +17,6 @@
  */
 package io.hops.tensorflow;
 
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class ClientArguments extends CommonArguments {
@@ -28,7 +27,7 @@ public class ClientArguments extends CommonArguments {
   
   public static final String NAME = "appname";
   public static final String MAIN = "main";
-  public static final String ARG = "shell_args";
+  public static final String ARGS = "shell_args";
   public static final String PY_FILES = "py_files";
   public static final String FILES = "files";
   
@@ -81,9 +80,7 @@ public class ClientArguments extends CommonArguments {
     opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
   
     opts.addOption(MAIN, true, "Your application's main Python file.");
-    opts.addOption(ARG, true, "Argument to be passed to your application's main class.\n" +
-        "Multiple invocations are possible, each will be passed in order.");
-    opts.getOption(ARG).setArgs(Option.UNLIMITED_VALUES);
+    opts.addOption(ARGS, true, "Command line args for the application. Multiple args can be separated by empty space.");
     opts.addOption(NAME, true, "A name of your application.");
     opts.addOption(PY_FILES, true, "Comma-separated list of .zip, .egg, or .py files to place on the PYTHONPATH for Python apps.");
     opts.addOption(FILES, true, "Comma-separated list of files to be placed in the working directory of each node.");
