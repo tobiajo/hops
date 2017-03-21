@@ -247,14 +247,14 @@ public class TestDistributedShell {
     TimelineEntities entitiesAttempts = yarnCluster
         .getApplicationHistoryServer()
         .getTimelineStore()
-        .getEntities(ApplicationMaster.DSEntity.DS_APP_ATTEMPT.toString(),
+        .getEntities(ApplicationMaster.YarnTfEntity.YARNTF_APP_ATTEMPT.toString(),
             null, null, null, null, null, null, null, null, null);
     Assert.assertNotNull(entitiesAttempts);
     Assert.assertEquals(1, entitiesAttempts.getEntities().size());
     Assert.assertEquals(2, entitiesAttempts.getEntities().get(0).getEvents()
         .size());
     Assert.assertEquals(entitiesAttempts.getEntities().get(0).getEntityType()
-        .toString(), ApplicationMaster.DSEntity.DS_APP_ATTEMPT.toString());
+        .toString(), ApplicationMaster.YarnTfEntity.YARNTF_APP_ATTEMPT.toString());
     if (haveDomain) {
       Assert.assertEquals(domain.getId(),
           entitiesAttempts.getEntities().get(0).getDomainId());
@@ -265,12 +265,12 @@ public class TestDistributedShell {
     TimelineEntities entities = yarnCluster
         .getApplicationHistoryServer()
         .getTimelineStore()
-        .getEntities(ApplicationMaster.DSEntity.DS_CONTAINER.toString(), null,
+        .getEntities(ApplicationMaster.YarnTfEntity.YARNTF_CONTAINER.toString(), null,
             null, null, null, null, null, null, null, null);
     Assert.assertNotNull(entities);
     Assert.assertEquals(2, entities.getEntities().size());
     Assert.assertEquals(entities.getEntities().get(0).getEntityType()
-        .toString(), ApplicationMaster.DSEntity.DS_CONTAINER.toString());
+        .toString(), ApplicationMaster.YarnTfEntity.YARNTF_CONTAINER.toString());
     if (haveDomain) {
       Assert.assertEquals(domain.getId(),
           entities.getEntities().get(0).getDomainId());

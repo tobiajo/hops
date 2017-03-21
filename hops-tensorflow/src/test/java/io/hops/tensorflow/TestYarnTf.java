@@ -28,16 +28,14 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
 
-public class TestYarnTF extends TestCluster {
+public class TestYarnTf extends TestCluster {
   
-  private static final Log LOG = LogFactory.getLog(TestYarnTF.class);
+  private static final Log LOG = LogFactory.getLog(TestYarnTf.class);
   
   @Test(timeout=90000)
   public void testYarnTFWithShellScript() throws Exception {
-    final File basedir = new File("target", TestYarnTF.class.getName());
+    final File basedir = new File("target", TestYarnTf.class.getName());
     final File tmpDir = new File(basedir, "tmpDir");
     tmpDir.mkdirs();
     final File customShellScript = new File(tmpDir, "custom_script.sh");

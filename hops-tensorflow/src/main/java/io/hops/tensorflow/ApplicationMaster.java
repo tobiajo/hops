@@ -30,8 +30,6 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.net.NetUtils;
@@ -64,7 +62,6 @@ import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
-import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse;
@@ -88,8 +85,6 @@ import java.io.ObjectInputStream;
 import java.io.StringReader;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -173,14 +168,18 @@ public class ApplicationMaster {
 
   @VisibleForTesting
   @Private
-  public static enum DSEvent {
-    DS_APP_ATTEMPT_START, DS_APP_ATTEMPT_END, DS_CONTAINER_START, DS_CONTAINER_END
+  public enum YarnTfEvent {
+    YARNTF_APP_ATTEMPT_START,
+    YARNTF_APP_ATTEMPT_END,
+    YARNTF_CONTAINER_START,
+    YARNTF_CONTAINER_END
   }
   
   @VisibleForTesting
   @Private
-  public static enum DSEntity {
-    DS_APP_ATTEMPT, DS_CONTAINER
+  public enum YarnTfEntity {
+    YARNTF_APP_ATTEMPT,
+    YARNTF_CONTAINER
   }
 
   // Configuration
@@ -493,8 +492,8 @@ public class ApplicationMaster {
     }
     */
 
-    if (envs.containsKey(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN)) {
-      domainId = envs.get(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN);
+    if (envs.containsKey(Constants.YARNTFTIMELINEDOMAIN)) {
+      domainId = envs.get(Constants.YARNTFTIMELINEDOMAIN);
     }
 
     containerMemory = Integer.parseInt(cliParser.getOptionValue(
@@ -593,7 +592,7 @@ public class ApplicationMaster {
     startTimelineClient(conf);
     if(timelineClient != null) {
       publishApplicationAttemptEvent(timelineClient, appAttemptID.toString(),
-          DSEvent.DS_APP_ATTEMPT_START, domainId, appSubmitterUgi);
+          YarnTfEvent.YARNTF_APP_ATTEMPT_START, domainId, appSubmitterUgi);
     }
 
     // Setup local RPC Server to accept status requests directly from clients
@@ -694,7 +693,7 @@ public class ApplicationMaster {
 
     if(timelineClient != null) {
       publishApplicationAttemptEvent(timelineClient, appAttemptID.toString(),
-          DSEvent.DS_APP_ATTEMPT_END, domainId, appSubmitterUgi);
+          YarnTfEvent.YARNTF_APP_ATTEMPT_END, domainId, appSubmitterUgi);
     }
 
     // Join all launched threads
@@ -1172,12 +1171,12 @@ public class ApplicationMaster {
       UserGroupInformation ugi) {
     final TimelineEntity entity = new TimelineEntity();
     entity.setEntityId(container.getId().toString());
-    entity.setEntityType(DSEntity.DS_CONTAINER.toString());
+    entity.setEntityType(YarnTfEntity.YARNTF_CONTAINER.toString());
     entity.setDomainId(domainId);
     entity.addPrimaryFilter("user", ugi.getShortUserName());
     TimelineEvent event = new TimelineEvent();
     event.setTimestamp(System.currentTimeMillis());
-    event.setEventType(DSEvent.DS_CONTAINER_START.toString());
+    event.setEventType(YarnTfEvent.YARNTF_CONTAINER_START.toString());
     event.addEventInfo("Node", container.getNodeId().toString());
     event.addEventInfo("Resources", container.getResource().toString());
     entity.addEvent(event);
@@ -1201,12 +1200,12 @@ public class ApplicationMaster {
       String domainId, UserGroupInformation ugi) {
     final TimelineEntity entity = new TimelineEntity();
     entity.setEntityId(container.getContainerId().toString());
-    entity.setEntityType(DSEntity.DS_CONTAINER.toString());
+    entity.setEntityType(YarnTfEntity.YARNTF_CONTAINER.toString());
     entity.setDomainId(domainId);
     entity.addPrimaryFilter("user", ugi.getShortUserName());
     TimelineEvent event = new TimelineEvent();
     event.setTimestamp(System.currentTimeMillis());
-    event.setEventType(DSEvent.DS_CONTAINER_END.toString());
+    event.setEventType(YarnTfEvent.YARNTF_CONTAINER_END.toString());
     event.addEventInfo("State", container.getState().name());
     event.addEventInfo("Exit Status", container.getExitStatus());
     entity.addEvent(event);
@@ -1220,10 +1219,10 @@ public class ApplicationMaster {
 
   private static void publishApplicationAttemptEvent(
       final TimelineClient timelineClient, String appAttemptId,
-      DSEvent appEvent, String domainId, UserGroupInformation ugi) {
+      YarnTfEvent appEvent, String domainId, UserGroupInformation ugi) {
     final TimelineEntity entity = new TimelineEntity();
     entity.setEntityId(appAttemptId);
-    entity.setEntityType(DSEntity.DS_APP_ATTEMPT.toString());
+    entity.setEntityType(YarnTfEntity.YARNTF_APP_ATTEMPT.toString());
     entity.setDomainId(domainId);
     entity.addPrimaryFilter("user", ugi.getShortUserName());
     TimelineEvent event = new TimelineEvent();
@@ -1234,7 +1233,7 @@ public class ApplicationMaster {
       timelineClient.putEntities(entity);
     } catch (YarnException | IOException e) {
       LOG.error("App Attempt "
-          + (appEvent.equals(DSEvent.DS_APP_ATTEMPT_START) ? "start" : "end")
+          + (appEvent.equals(YarnTfEvent.YARNTF_APP_ATTEMPT_START) ? "start" : "end")
           + " event could not be published for "
           + appAttemptId.toString(), e);
     }
