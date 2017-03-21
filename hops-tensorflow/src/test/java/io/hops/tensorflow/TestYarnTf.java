@@ -29,96 +29,24 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import static io.hops.tensorflow.ClientArguments.*;
+
 public class TestYarnTf extends TestCluster {
   
   private static final Log LOG = LogFactory.getLog(TestYarnTf.class);
   
   @Test(timeout=90000)
-  public void testYarnTFWithShellScript() throws Exception {
-    final File basedir = new File("target", TestYarnTf.class.getName());
-    final File tmpDir = new File(basedir, "tmpDir");
-    tmpDir.mkdirs();
-    final File customShellScript = new File(tmpDir, "custom_script.sh");
-    if (customShellScript.exists()) {
-      customShellScript.delete();
-    }
-    if (!customShellScript.createNewFile()) {
-      Assert.fail("Can not create custom shell script file.");
-    }
-    
-    PrintWriter fileWriter = new PrintWriter(customShellScript);
-    // set the output to DEBUG level
-    fileWriter.write("tree && echo \"amazing output: $1 $2\" && echo PYTHONPATH=$PYTHONPATH && python foo.py");
-    fileWriter.close();
-    
-    System.out.println(customShellScript.getAbsolutePath());
-    String[] args = {
-        "--jar",
-        APPMASTER_JAR,
-        "--num_containers",
-        "1",
-        "--shell_script",
-        customShellScript.getAbsolutePath(),
-        "--master_memory",
-        "512",
-        "--master_vcores",
-        "2",
-        "--container_memory",
-        "128",
-        "--container_vcores",
-        "1",
-        "--main",
-        "examples/foo.py",
-        "--shell_args",
-        "hello",
-        "--shell_args",
-        "world",
-        "--py_files",
-        "examples/bar.py,examples/baz.zip"
-    };
-    
-    LOG.info("Initializing DS Client");
-    final Client client =
-        new Client(new Configuration(yarnCluster.getConfig()));
-    boolean initSuccess = client.init(args);
-    Assert.assertTrue(initSuccess);
-    LOG.info("Running DS Client");
-    ApplicationId appId = client.submitApplication();
-    boolean result = client.monitorApplication(appId);
-    LOG.info("Client run completed. Result=" + result);
-    //List<String> expectedContent = new ArrayList<String>();
-    //expectedContent.add("testDSShellWithShellScript");
-    //TestUtils.verifyContainerLog(yarnCluster, 1, expectedContent, false, "");
-    Assert.assertTrue(TestUtils.dumpAllRemoteContainersLogs(yarnCluster, appId));
-    Assert.assertFalse(TestUtils.dumpAllAggregatedContainersLogs(yarnCluster, appId));;
-    Thread.sleep(5000);
-    Assert.assertFalse(TestUtils.dumpAllRemoteContainersLogs(yarnCluster, appId));
-    Assert.assertTrue(TestUtils.dumpAllAggregatedContainersLogs(yarnCluster, appId));
-  }
-  
-  @Test(timeout=90000)
   public void testCreateClusterSpec() throws Exception {
     String[] args = {
-        "--jar",
-        APPMASTER_JAR,
-        "--num_containers",
-        "5",
-        "--master_memory",
-        "256",
-        "--master_vcores",
-        "1",
-        "--container_memory",
-        "256",
-        "--container_vcores",
-        "1",
-        "--main",
-        "examples/create_cluster_spec.py",
-        "--workers",
-        "4",
-        "--pses",
-        "1",
-        "--" + ClientArguments.ARGS,
-        "hello world"
+        "--" + AM_JAR, APPMASTER_JAR,
+        "--" + AM_MEMORY, "256",
+        "--" + AM_VCORES, "1",
+        "--" + MEMORY, "256",
+        "--" + VCORES, "1",
+        "--" + MAIN, "examples/create_cluster_spec.py",
+        "--" + WORKERS, "4",
+        "--" + PSES, "1",
+        "--" + ARGS, "hello world"
     };
     
     LOG.info("Initializing DS Client");

@@ -41,11 +41,9 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
@@ -83,37 +81,6 @@ import java.util.Vector;
 
 import static io.hops.tensorflow.ClientArguments.*;
 
-/**
- * Client for Distributed Shell application submission to YARN.
- *
- * <p> The distributed shell client allows an application master to be launched that in turn would run 
- * the provided shell command on a set of containers. </p>
- *
- * <p>This client is meant to act as an example on how to write yarn-based applications. </p>
- *
- * <p> To submit an application, a client first needs to connect to the <code>ResourceManager</code> 
- * aka ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The {@link ApplicationClientProtocol}
- * provides a way for the client to get access to cluster information and to request for a
- * new {@link ApplicationId}. <p>
- *
- * <p> For the actual job submission, the client first has to create an {@link ApplicationSubmissionContext}. 
- * The {@link ApplicationSubmissionContext} defines the application details such as {@link ApplicationId}
- * and application name, the priority assigned to the application and the queue
- * to which this application needs to be assigned. In addition to this, the {@link ApplicationSubmissionContext}
- * also defines the {@link ContainerLaunchContext} which describes the <code>Container</code> with which 
- * the {@link ApplicationMaster} is launched. </p>
- *
- * <p> The {@link ContainerLaunchContext} in this scenario defines the resources to be allocated for the 
- * {@link ApplicationMaster}'s container, the local resources (jars, configuration files) to be made available 
- * and the environment to be set for the {@link ApplicationMaster} and the commands to be executed to run the 
- * {@link ApplicationMaster}. <p>
- *
- * <p> Using the {@link ApplicationSubmissionContext}, the client submits the application to the 
- * <code>ResourceManager</code> and then monitors the application by requesting the <code>ResourceManager</code> 
- * for an {@link ApplicationReport} at regular time intervals. In case of the application taking too long, the client 
- * kills the application by submitting a {@link KillApplicationRequest} to the <code>ResourceManager</code>. </p>
- *
- */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public class Client {
@@ -147,18 +114,17 @@ public class Client {
   */
   
   // Args to be passed to the application
-  private String[] shellArgs = new String[] {};
+  //private String[] shellArgs = new String[] {};
+  private String[] pyArgs = new String[] {};
   // Env variables to be setup for the shell command
-  private Map<String, String> shellEnv = new HashMap<String, String>();
+  private Map<String, String> environment = new HashMap<>();
   // Shell Command Container priority
-  private int shellCmdPriority = 0;
+  private int pyAppPriority = 0;
 
   // Amt of memory to request for container in which shell script will be executed
   private int containerMemory = 10;
   // Amt. of virtual cores to request for container in which shell script will be executed
   private int containerVirtualCores = 1;
-  // No. of containers in which the shell script needs to be executed
-  private int numContainers = 1;
   private String nodeLabelExpression = null;
 
   // log4j.properties file
@@ -198,9 +164,9 @@ public class Client {
   */
   
   //private static final String pythonArgsPath = "shellArgs";
-  private static final String appMasterJarPath = "AppMaster.jar";
+  private static final String APP_MASTER_JAR_PATH = "AppMaster.jar";
   // Hardcoded path to custom log_properties
-  private static final String log4jPath = "log4j.properties";
+  private static final String LOG4J_PATH = "log4j.properties";
 
   /*
   public static final String SCRIPT_PATH = "ExecScript";
@@ -282,8 +248,8 @@ public class Client {
       throw new IllegalArgumentException("No args specified for client to initialize");
     }
 
-    if (cliParser.hasOption("log_properties")) {
-      String log4jPath = cliParser.getOptionValue("log_properties");
+    if (cliParser.hasOption(LOG_PROPERTIES)) {
+      String log4jPath = cliParser.getOptionValue(LOG_PROPERTIES);
       try {
         Log4jPropertyHelper.updateLog4jConfiguration(Client.class, log4jPath);
       } catch (Exception e) {
@@ -291,26 +257,26 @@ public class Client {
       }
     }
 
-    if (cliParser.hasOption("help")) {
+    if (cliParser.hasOption(HELP)) {
       printUsage();
       return false;
     }
 
-    if (cliParser.hasOption("debug")) {
+    if (cliParser.hasOption(DEBUG)) {
       debugFlag = true;
 
     }
 
-    if (cliParser.hasOption("keep_containers_across_application_attempts")) {
-      LOG.info("keep_containers_across_application_attempts");
+    if (cliParser.hasOption(KEEP_CONTAINERS_ACROSS_APPLICATION_ATTEMPTS)) {
+      LOG.info(KEEP_CONTAINERS_ACROSS_APPLICATION_ATTEMPTS);
       keepContainers = true;
     }
 
-    appName = cliParser.getOptionValue("appname", "DistributedShell");
-    amPriority = Integer.parseInt(cliParser.getOptionValue("priority", "0"));
-    amQueue = cliParser.getOptionValue("queue", "default");
-    amMemory = Integer.parseInt(cliParser.getOptionValue("master_memory", "10"));
-    amVCores = Integer.parseInt(cliParser.getOptionValue("master_vcores", "1"));
+    appName = cliParser.getOptionValue(NAME, "yarntf");
+    amPriority = Integer.parseInt(cliParser.getOptionValue(AM_PRIORITY, "0"));
+    amQueue = cliParser.getOptionValue(QUEUE, "default");
+    amMemory = Integer.parseInt(cliParser.getOptionValue(AM_MEMORY, "10"));
+    amVCores = Integer.parseInt(cliParser.getOptionValue(AM_VCORES, "1"));
 
     if (amMemory < 0) {
       throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
@@ -321,11 +287,11 @@ public class Client {
           + " Specified virtual cores=" + amVCores);
     }
 
-    if (!cliParser.hasOption("jar")) {
+    if (!cliParser.hasOption(AM_JAR)) {
       throw new IllegalArgumentException("No jar file specified for application master");
     }
 
-    appMasterJar = cliParser.getOptionValue("jar");
+    appMasterJar = cliParser.getOptionValue(AM_JAR);
 
     /*
     if (!cliParser.hasOption("shell_command") && !cliParser.hasOption("shell_script")) {
@@ -341,16 +307,16 @@ public class Client {
     }
     */
     
-    if (cliParser.hasOption("shell_args")) {
-      shellArgs = cliParser.getOptionValues("shell_args");
+    if (cliParser.hasOption(ARGS)) {
+      pyArgs = cliParser.getOptionValues(ARGS);
     }
-    if (cliParser.hasOption("shell_env")) {
-      String envs[] = cliParser.getOptionValues("shell_env");
+    if (cliParser.hasOption(ENV)) {
+      String envs[] = cliParser.getOptionValues(ENV);
       for (String env : envs) {
         env = env.trim();
         int index = env.indexOf('=');
         if (index == -1) {
-          shellEnv.put(env, "");
+          environment.put(env, "");
           continue;
         }
         String key = env.substring(0, index);
@@ -358,22 +324,24 @@ public class Client {
         if (index < (env.length()-1)) {
           val = env.substring(index+1);
         }
-        shellEnv.put(key, val);
+        environment.put(key, val);
       }
     }
-    shellCmdPriority = Integer.parseInt(cliParser.getOptionValue("shell_cmd_priority", "0"));
+    pyAppPriority = Integer.parseInt(cliParser.getOptionValue(PRIORITY, "0"));
 
-    containerMemory = Integer.parseInt(cliParser.getOptionValue("container_memory", "10"));
-    containerVirtualCores = Integer.parseInt(cliParser.getOptionValue("container_vcores", "1"));
-    numContainers = Integer.parseInt(cliParser.getOptionValue("num_containers", "1"));
+    containerMemory = Integer.parseInt(cliParser.getOptionValue(MEMORY, "10"));
+    containerVirtualCores = Integer.parseInt(cliParser.getOptionValue(VCORES, "1"));
+    int numWorkers = Integer.parseInt(cliParser.getOptionValue(WORKERS, "1"));
+    int numPses = Integer.parseInt(cliParser.getOptionValue(PSES, "1"));
     
 
-    if (containerMemory < 0 || containerVirtualCores < 0 || numContainers < 1) {
+    if (containerMemory < 0 || containerVirtualCores < 0 || numWorkers < 1 || numPses < 1) {
       throw new IllegalArgumentException("Invalid no. of containers or container memory/vcores specified,"
           + " exiting."
           + " Specified containerMemory=" + containerMemory
           + ", containerVirtualCores=" + containerVirtualCores
-          + ", numContainer=" + numContainers);
+          + ", numWorkers=" + numWorkers
+          + ", numPses=" + numPses);
     }
     
     nodeLabelExpression = cliParser.getOptionValue("node_label_expression", null);
@@ -387,14 +355,14 @@ public class Client {
     log4jPropFile = cliParser.getOptionValue("log_properties", "");
 
     // Get timeline domain options
-    if (cliParser.hasOption("domain")) {
-      domainId = cliParser.getOptionValue("domain");
-      toCreateDomain = cliParser.hasOption("create");
-      if (cliParser.hasOption("view_acls")) {
-        viewACLs = cliParser.getOptionValue("view_acls");
+    if (cliParser.hasOption(DOMAIN)) {
+      domainId = cliParser.getOptionValue(DOMAIN);
+      toCreateDomain = cliParser.hasOption(CREATE);
+      if (cliParser.hasOption(VIEW_ACLS)) {
+        viewACLs = cliParser.getOptionValue(VIEW_ACLS);
       }
-      if (cliParser.hasOption("modify_acls")) {
-        modifyACLs = cliParser.getOptionValue("modify_acls");
+      if (cliParser.hasOption(MODIFY_ACLS)) {
+        modifyACLs = cliParser.getOptionValue(MODIFY_ACLS);
       }
     }
 
@@ -532,17 +500,16 @@ public class Client {
     vargs.add(appMasterMainClass);
     // Set params for Application Master
     
-    vargs.add("--container_memory " + String.valueOf(containerMemory));
-    vargs.add("--container_vcores " + String.valueOf(containerVirtualCores));
-    vargs.add("--num_containers " + String.valueOf(numContainers));
-    vargs.add("--priority " + String.valueOf(shellCmdPriority));
+    vargs.add(newArg(MEMORY, String.valueOf(containerMemory)));
+    vargs.add(newArg(VCORES, String.valueOf(containerVirtualCores)));
+    vargs.add(newArg(PRIORITY, String.valueOf(pyAppPriority)));
     
-    vargs.add(newArg(ApplicationMasterArguments.MAIN_RELATIVE, mainRelativePath));
+    vargs.add(newArg(MAIN_RELATIVE, mainRelativePath));
     vargs.add(forwardArgument(WORKERS));
     vargs.add(forwardArgument(PSES));
   
-    for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
-      vargs.add("--shell_env " + entry.getKey() + "=" + entry.getValue());
+    for (Map.Entry<String, String> entry : environment.entrySet()) {
+      vargs.add(newArg(ENV, entry.getKey() + "=" + entry.getValue()));
     }
     if (debugFlag) {
       vargs.add("--debug");
@@ -721,12 +688,12 @@ public class Client {
     LOG.info("Copy App Master jar from local filesystem and add to local environment");
     // Copy the application master jar to the filesystem
     // Create a local resource to point to the destination jar path
-    addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(),
+    addToLocalResources(fs, appMasterJar, APP_MASTER_JAR_PATH, appId.toString(),
         localResources, null);
     
     // Set the log4j properties if needed
     if (!log4jPropFile.isEmpty()) {
-      addToLocalResources(fs, log4jPropFile, log4jPath, appId.toString(),
+      addToLocalResources(fs, log4jPropFile, LOG4J_PATH, appId.toString(),
           localResources, null);
     }
     
@@ -737,14 +704,14 @@ public class Client {
     }
     */
     
-    if (shellArgs.length > 0) {
+    if (pyArgs.length > 0) {
       addToLocalResources(fs, null, Constants.PY_ARGS_PATH, appId.toString(),
-          localResources, StringUtils.join(shellArgs, " "));
+          localResources, StringUtils.join(pyArgs, " "));
     }
     
     // YarnTF take over
   
-    addResource(fs, appId, cliParser.getOptionValue(JAR), null, Constants.AM_JAR_PATH, null, localResources, null);
+    addResource(fs, appId, cliParser.getOptionValue(AM_JAR), null, Constants.AM_JAR_PATH, null, localResources, null);
     
     DistributedCacheList dcl = populateDistributedCache(fs, appId);
     
@@ -772,9 +739,9 @@ public class Client {
     mainRelativePath = addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCacheList, null, null);
   
     StringBuilder pythonPath = new StringBuilder(Constants.LOCALIZED_PYTHON_DIR);
-    if (cliParser.hasOption(PY_FILES)) {
-      String[] pyFiles = cliParser.getOptionValue(PY_FILES).split(",");
-      for (String file : pyFiles) {
+    if (cliParser.hasOption(FILES)) {
+      String[] files = cliParser.getOptionValue(FILES).split(",");
+      for (String file : files) {
         if (file.endsWith(".py")) {
           addResource(fs, appId, file, Constants.LOCALIZED_PYTHON_DIR, null, distCacheList, null, null);
         } else {
@@ -782,7 +749,7 @@ public class Client {
         }
       }
     }
-    shellEnv.put("PYTHONPATH", pythonPath.toString());
+    environment.put("PYTHONPATH", pythonPath.toString());
     
     return distCacheList;
   }

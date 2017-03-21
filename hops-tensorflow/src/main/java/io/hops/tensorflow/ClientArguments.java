@@ -17,77 +17,82 @@
  */
 package io.hops.tensorflow;
 
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class ClientArguments extends CommonArguments {
   
-  public static final String JAR = "jar";
-  public static final String AM_MEMORY = "master_memory";
-  public static final String AM_VCORES = "master_vcores";
-  
   public static final String NAME = "appname";
   public static final String MAIN = "main";
-  public static final String ARGS = "shell_args";
-  public static final String PY_FILES = "py_files";
+  public static final String ARGS = "args";
   public static final String FILES = "files";
   
-  public static final String GPU = "gpu";
-  public static final String RDMA = "rdma";
-  public static final String TENSORBOARD = "tensorboard";
+  public static final String TENSORBOARD = "tensorboard"; // TODO: Implement usage
+  
+  public static final String AM_JAR = "am_jar";
+  public static final String AM_MEMORY = "am_memory";
+  public static final String AM_VCORES = "am_vcores";
+  public static final String AM_PRIORITY = "am_priority";
+  
+  public static final String QUEUE = "queue";
+  public static final String TIMEOUT = "timeout";
+  public static final String LOG_PROPERTIES = "log_properties";
+  
+  public static final String KEEP_CONTAINERS_ACROSS_APPLICATION_ATTEMPTS =
+      "keep_containers_across_application_attempts";
+  public static final String ATTEMPT_FAILURES_VALIDITY_INTERVAL = "attempt_failures_validity_interval";
+  public static final String DOMAIN = "domain";
+  public static final String VIEW_ACLS = "view_acls";
+  public static final String MODIFY_ACLS = "modify_acls";
+  public static final String CREATE = "create";
+  public static final String NODE_LABEL_EXPRESSION = "node_label_expression";
+  
   
   public static Options createOptions() {
     Options opts = CommonArguments.createOptions();
-    opts.addOption("queue", true, "RM Queue in which this application is to be submitted");
-    opts.addOption("timeout", true, "Application timeout in milliseconds");
-    opts.addOption("shell_command", true, "Shell command to be executed by " +
-        "the Application Master. Can only specify either --shell_command " +
-        "or --shell_script");
-    opts.addOption("shell_script", true, "Location of the shell script to be " +
-        "executed. Can only specify either --shell_command or --shell_script");
-    opts.addOption("shell_cmd_priority", true, "Priority for the shell command containers");
-    opts.addOption("log_properties", true, "log4j.properties file");
-    opts.addOption("keep_containers_across_application_attempts", false,
+    opts.addOption(NAME, true, "A name of your application.");
+    opts.addOption(MAIN, true, "Your application's main Python file.");
+    opts.addOption(ARGS, true, "Command line args for the application. Multiple args can be separated by empty space.");
+    opts.getOption(ARGS).setArgs(Option.UNLIMITED_VALUES);
+    opts.addOption(FILES, true,
+        "Comma-separated list of .zip, .egg, or .py files to place on the PYTHONPATH for Python apps.");
+    
+    opts.addOption(TENSORBOARD, false, "Enable TensorBoard"); // TODO: Implement usage
+    
+    opts.addOption(AM_JAR, true, "Jar file containing the application master");
+    opts.addOption(AM_MEMORY, true, "Amount of memory in MB to be requested to run the application master");
+    opts.addOption(AM_VCORES, true, "Amount of virtual cores to be requested to run the application master");
+    opts.addOption(AM_PRIORITY, true, "Application Master Priority. Default 0");
+    
+    opts.addOption(QUEUE, true, "RM Queue in which this application is to be submitted");
+    opts.addOption(TIMEOUT, true, "Application timeout in milliseconds");
+    opts.addOption(LOG_PROPERTIES, true, "log4j.properties file");
+    
+    opts.addOption(KEEP_CONTAINERS_ACROSS_APPLICATION_ATTEMPTS, false,
         "Flag to indicate whether to keep containers across application attempts." +
             " If the flag is true, running containers will not be killed when" +
             " application attempt fails and these containers will be retrieved by" +
             " the new application attempt ");
-    opts.addOption("attempt_failures_validity_interval", true,
+    opts.addOption(ATTEMPT_FAILURES_VALIDITY_INTERVAL, true,
         "when attempt_failures_validity_interval in milliseconds is set to > 0," +
             "the failure number will not take failures which happen out of " +
             "the validityInterval into failure count. " +
             "If failure count reaches to maxAppAttempts, " +
             "the application will be failed.");
-    opts.addOption("domain", true, "ID of the timeline domain where the "
+    opts.addOption(DOMAIN, true, "ID of the timeline domain where the "
         + "timeline entities will be put");
-    opts.addOption("view_acls", true, "Users and groups that allowed to "
+    opts.addOption(VIEW_ACLS, true, "Users and groups that allowed to "
         + "view the timeline entities in the given domain");
-    opts.addOption("modify_acls", true, "Users and groups that allowed to "
+    opts.addOption(MODIFY_ACLS, true, "Users and groups that allowed to "
         + "modify the timeline entities in the given domain");
-    opts.addOption("create", false, "Flag to indicate whether to create the "
+    opts.addOption(CREATE, false, "Flag to indicate whether to create the "
         + "domain specified with -domain.");
-    opts.addOption("node_label_expression", true,
+    opts.addOption(NODE_LABEL_EXPRESSION, true,
         "Node label expression to determine the nodes"
             + " where all the containers of this application"
             + " will be allocated, \"\" means containers"
             + " can be allocated anywhere, if you don't specify the option,"
             + " default node_label_expression of queue will be used.");
-  
-    // YarnTF options
-    opts.addOption(JAR, true, "Jar file containing the application master");
-    opts.addOption(AM_MEMORY, true, "Amount of memory in MB to be requested to run the application master");
-    opts.addOption(AM_VCORES, true, "Amount of virtual cores to be requested to run the application master");
-    
-    opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
-  
-    opts.addOption(MAIN, true, "Your application's main Python file.");
-    opts.addOption(ARGS, true, "Command line args for the application. Multiple args can be separated by empty space.");
-    opts.addOption(NAME, true, "A name of your application.");
-    opts.addOption(PY_FILES, true, "Comma-separated list of .zip, .egg, or .py files to place on the PYTHONPATH for Python apps.");
-    opts.addOption(FILES, true, "Comma-separated list of files to be placed in the working directory of each node.");
-    // TODO: Make us of args below
-    opts.addOption(GPU, false, "Enable GPU");
-    opts.addOption(RDMA, false, "Enable RDMA");
-    opts.addOption(TENSORBOARD, false, "Enable TensorBoard");
     return opts;
   }
 }

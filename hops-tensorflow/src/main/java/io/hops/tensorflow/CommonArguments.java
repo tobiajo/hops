@@ -21,20 +21,31 @@ import org.apache.commons.cli.Options;
 
 public class CommonArguments {
   
+  public static final String MAIN_RELATIVE = "main_relative";
   public static final String WORKERS = "workers";
   public static final String PSES = "pses";
+  public static final String ENV = "env";
+  
+  public static final String MEMORY = "memory";
+  public static final String VCORES = "vcores";
+  public static final String PRIORITY = "py_app_priority";
+  
+  public static final String DEBUG = "debug";
+  public static final String HELP = "help";
   
   protected static Options createOptions() {
     Options opts = new Options();
-    opts.addOption("priority", true, "Application Priority. Default 0");
-    opts.addOption("debug", false, "Dump out debug information");
-    opts.addOption("help", false, "Print usage");
-    opts.addOption("container_memory", true, "Amount of memory in MB to be requested to run the shell command");
-    opts.addOption("container_vcores", true, "Amount of virtual cores to be requested to run the shell command");
-    opts.addOption("num_containers", true, "No. of containers on which the shell command needs to be executed");
-    opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
+    opts.addOption(MAIN_RELATIVE, true, "Your application's main Python file. Relative path for worker or ps");
     opts.addOption(WORKERS, true, "Number of workers");
     opts.addOption(PSES, true, "Number of parameter servers");
+    opts.addOption(ENV, true, "Environment for Python application. Specified as env_key=env_val pairs");
+    
+    opts.addOption(MEMORY, true, "Amount of memory in MB to be requested to run the Python application");
+    opts.addOption(VCORES, true, "Amount of virtual cores to be requested to run the Python application");
+    opts.addOption(PRIORITY, true, "Priority for the Python application containers");
+    
+    opts.addOption(DEBUG, false, "Dump out debug information");
+    opts.addOption(HELP, false, "Print usage");
     return opts;
   }
 }

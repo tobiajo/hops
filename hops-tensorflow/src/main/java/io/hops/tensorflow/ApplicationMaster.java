@@ -40,13 +40,8 @@ import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.hadoop.yarn.api.ApplicationMasterProtocol;
 import org.apache.hadoop.yarn.api.ContainerManagementProtocol;
-import org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
@@ -61,7 +56,6 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse;
@@ -99,67 +93,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.hops.tensorflow.ApplicationMasterArguments.*;
 
-/**
- * An ApplicationMaster for executing shell commands on a set of launched
- * containers using the YARN framework.
- *
- * <p>
- * This class is meant to act as an example on how to write yarn-based
- * application masters.
- * </p>
- *
- * <p>
- * The ApplicationMaster is started on a container by the
- * <code>ResourceManager</code>'s launcher. The first thing that the
- * <code>ApplicationMaster</code> needs to do is to connect and register itself
- * with the <code>ResourceManager</code>. The registration sets up information
- * within the <code>ResourceManager</code> regarding what host:port the
- * ApplicationMaster is listening on to provide any form of functionality to a
- * client as well as a tracking url that a client can use to keep track of
- * status/job history if needed. However, in the distributedshell, trackingurl
- * and appMasterHost:appMasterRpcPort are not supported.
- * </p>
- *
- * <p>
- * The <code>ApplicationMaster</code> needs to send a heartbeat to the
- * <code>ResourceManager</code> at regular intervals to inform the
- * <code>ResourceManager</code> that it is up and alive. The
- * {@link ApplicationMasterProtocol#allocate} to the <code>ResourceManager</code> from the
- * <code>ApplicationMaster</code> acts as a heartbeat.
- *
- * <p>
- * For the actual handling of the job, the <code>ApplicationMaster</code> has to
- * request the <code>ResourceManager</code> via {@link AllocateRequest} for the
- * required no. of containers using {@link ResourceRequest} with the necessary
- * resource specifications such as node location, computational
- * (memory/disk/cpu) resource requirements. The <code>ResourceManager</code>
- * responds with an {@link AllocateResponse} that informs the
- * <code>ApplicationMaster</code> of the set of newly allocated containers,
- * completed containers as well as current state of available resources.
- * </p>
- *
- * <p>
- * For each allocated container, the <code>ApplicationMaster</code> can then set
- * up the necessary launch context via {@link ContainerLaunchContext} to specify
- * the allocated container id, local resources required by the executable, the
- * environment to be setup for the executable, commands to execute, etc. and
- * submit a {@link StartContainerRequest} to the {@link ContainerManagementProtocol} to
- * launch and execute the defined commands on the given allocated container.
- * </p>
- *
- * <p>
- * The <code>ApplicationMaster</code> can monitor the launched container by
- * either querying the <code>ResourceManager</code> using
- * {@link ApplicationMasterProtocol#allocate} to get updates on completed containers or via
- * the {@link ContainerManagementProtocol} by querying for the status of the allocated
- * container's {@link ContainerId}.
- *
- * <p>
- * After the job has been completed, the <code>ApplicationMaster</code> has to
- * send a {@link FinishApplicationMasterRequest} to the
- * <code>ResourceManager</code> to inform it that the
- * <code>ApplicationMaster</code> has been completed.
- */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public class ApplicationMaster {
@@ -211,10 +144,13 @@ public class ApplicationMaster {
   // Tracking url to which app master publishes info for clients to monitor
   private String appMasterTrackingUrl = "";
 
+  private int numWorkers;
+  private int numPses;
+  
   // App Master configuration
   // No. of containers to run shell command on
   @VisibleForTesting
-  protected int numTotalContainers = 1;
+  protected int numTotalContainers = 2;
   // Memory to request for the container on which the shell command will run
   private int containerMemory = 10;
   // VirtualCores to request for the container on which the shell command will run
@@ -246,7 +182,7 @@ public class ApplicationMaster {
   private String pyArgs = "";
   
   // Env variables to be setup for the shell command
-  private Map<String, String> shellEnv = new HashMap<String, String>();
+  private Map<String, String> pyEnv = new HashMap<>();
 
   /*
   // Location of shell script ( obtained from info set in env )
@@ -269,7 +205,7 @@ public class ApplicationMaster {
   */
 
   // Hardcoded path to custom log_properties
-  private static final String log4jPath = "log4j.properties";
+  private static final String LOG4J_PATH = "log4j.properties";
 
   /*
   private static final String shellCommandPath = "shellCommands";
@@ -296,6 +232,7 @@ public class ApplicationMaster {
   // YarnTF stuff
   private CommandLine cliParser;
   private DistributedCacheList distCacheList;
+  private String mainRelative;
 
   /**
    * @param args Command line args
@@ -379,29 +316,29 @@ public class ApplicationMaster {
     }
 
     //Check whether customer log4j.properties file exists
-    if (fileExist(log4jPath)) {
+    if (fileExist(LOG4J_PATH)) {
       try {
         Log4jPropertyHelper.updateLog4jConfiguration(ApplicationMaster.class,
-            log4jPath);
+            LOG4J_PATH);
       } catch (Exception e) {
         LOG.warn("Can not set up custom log4j properties. " + e);
       }
     }
 
-    if (cliParser.hasOption("help")) {
+    if (cliParser.hasOption(HELP)) {
       printUsage(opts);
       return false;
     }
 
-    if (cliParser.hasOption("debug")) {
+    if (cliParser.hasOption(DEBUG)) {
       dumpOutDebugInfo();
     }
 
     Map<String, String> envs = System.getenv();
 
     if (!envs.containsKey(Environment.CONTAINER_ID.name())) {
-      if (cliParser.hasOption("app_attempt_id")) {
-        String appIdStr = cliParser.getOptionValue("app_attempt_id", "");
+      if (cliParser.hasOption(APP_ATTEMPT_ID)) {
+        String appIdStr = cliParser.getOptionValue(APP_ATTEMPT_ID, "");
         appAttemptID = ConverterUtils.toApplicationAttemptId(appIdStr);
       } else {
         throw new IllegalArgumentException(
@@ -451,13 +388,13 @@ public class ApplicationMaster {
     }
     
 
-    if (cliParser.hasOption("shell_env")) {
-      String shellEnvs[] = cliParser.getOptionValues("shell_env");
+    if (cliParser.hasOption(ENV)) {
+      String shellEnvs[] = cliParser.getOptionValues(ENV);
       for (String env : shellEnvs) {
         env = env.trim();
         int index = env.indexOf('=');
         if (index == -1) {
-          shellEnv.put(env, "");
+          pyEnv.put(env, "");
           continue;
         }
         String key = env.substring(0, index);
@@ -465,7 +402,7 @@ public class ApplicationMaster {
         if (index < (env.length() - 1)) {
           val = env.substring(index + 1);
         }
-        shellEnv.put(key, val);
+        pyEnv.put(key, val);
       }
     }
 
@@ -496,18 +433,17 @@ public class ApplicationMaster {
       domainId = envs.get(Constants.YARNTFTIMELINEDOMAIN);
     }
 
-    containerMemory = Integer.parseInt(cliParser.getOptionValue(
-        "container_memory", "10"));
-    containerVirtualCores = Integer.parseInt(cliParser.getOptionValue(
-        "container_vcores", "1"));
-    numTotalContainers = Integer.parseInt(cliParser.getOptionValue(
-        "num_containers", "1"));
-    if (numTotalContainers == 0) {
-      throw new IllegalArgumentException(
-          "Cannot run distributed shell with no containers");
+    containerMemory = Integer.parseInt(cliParser.getOptionValue(MEMORY, "10"));
+    containerVirtualCores = Integer.parseInt(cliParser.getOptionValue(VCORES, "1"));
+    
+    numWorkers = Integer.parseInt(cliParser.getOptionValue(WORKERS, "1"));
+    numPses = Integer.parseInt(cliParser.getOptionValue(PSES, "1"));
+    numTotalContainers = numWorkers + numPses;
+    if (numWorkers == 0 || numPses == 0) {
+      throw new IllegalArgumentException("Need at least 1 worker and 1 parameter server");
     }
-    requestPriority = Integer.parseInt(cliParser
-        .getOptionValue("priority", "0"));
+    requestPriority = Integer.parseInt(cliParser.getOptionValue(PRIORITY, "0"));
+    mainRelative = cliParser.getOptionValue(MAIN_RELATIVE);
     return true;
   }
 
@@ -529,7 +465,7 @@ public class ApplicationMaster {
   @SuppressWarnings({ "unchecked" })
   public void run() throws YarnException, IOException, InterruptedException {
     LOG.info("Starting ApplicationMaster. " +
-        "Workers: " + cliParser.getOptionValue(WORKERS) + ", Parameter servers: " + cliParser.getOptionValue(PSES));
+        "Workers: " + numWorkers + ", Parameter servers: " + numPses);
   
     FileInputStream fin = new FileInputStream(Constants.DIST_CACHE_PATH);
     ObjectInputStream ois = new ObjectInputStream(fin);
@@ -552,8 +488,8 @@ public class ApplicationMaster {
       port++;
     }
   
-    shellEnv.put("AM_ADDRESS",InetAddress.getLocalHost().getHostName() + ":" + port);
-    shellEnv.put("APPLICATION_ID", appAttemptID.getApplicationId().toString());
+    pyEnv.put("AM_ADDRESS",InetAddress.getLocalHost().getHostName() + ":" + port);
+    pyEnv.put("APPLICATION_ID", appAttemptID.getApplicationId().toString());
   
     // Note: Credentials, Token, UserGroupInformation, DataOutputBuffer class
     // are marked as LimitedPrivate
@@ -846,10 +782,10 @@ public class ApplicationMaster {
         String jobName;
         int taskIndex;
         
-        if (worker < Integer.parseInt(cliParser.getOptionValue(WORKERS)) - 1) {
+        if (worker < numWorkers - 1) {
           jobName = "worker";
           taskIndex = ++worker;
-        } else if (ps < Integer.parseInt(cliParser.getOptionValue(WORKERS)) - 1) {
+        } else if (ps < numPses - 1) {
           jobName = "ps";
           taskIndex = ++ps;
         } else {
@@ -1066,7 +1002,7 @@ public class ApplicationMaster {
       // Set the necessary command to execute on the allocated container
       Vector<CharSequence> vargs = new Vector<CharSequence>(5);
 
-      vargs.add("python " + cliParser.getOptionValue(MAIN_RELATIVE));
+      vargs.add("python " + mainRelative);
       
       /*
       // Set executable command
@@ -1103,11 +1039,11 @@ public class ApplicationMaster {
       // download anyfiles in the distributed file-system. The tokens are
       // otherwise also useful in cases, for e.g., when one is running a
       // "hadoop dfs" command inside the distributed shell.
-      Map<String, String> shellEnvCopy = new HashMap<>(shellEnv);
-      shellEnvCopy.put("JOB_NAME", jobName);
-      shellEnvCopy.put("TASK_INDEX", Integer.toString(taskIndex));
+      Map<String, String> pyEnvCopy = new HashMap<>(pyEnv);
+      pyEnvCopy.put("JOB_NAME", jobName);
+      pyEnvCopy.put("TASK_INDEX", Integer.toString(taskIndex));
       ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(
-        localResources, shellEnvCopy, commands, null, allTokens.duplicate(), null);
+        localResources, pyEnvCopy, commands, null, allTokens.duplicate(), null);
       containerListener.addContainer(container.getId(), container);
       nmClientAsync.startContainerAsync(container, ctx);
     }
