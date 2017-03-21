@@ -45,10 +45,12 @@ public class TestYarnTF extends TestCluster {
     if (!customShellScript.createNewFile()) {
       Assert.fail("Can not create custom shell script file.");
     }
+    
     PrintWriter fileWriter = new PrintWriter(customShellScript);
     // set the output to DEBUG level
-    fileWriter.write("echo \"amazing output: $1 $2\"");
+    fileWriter.write("tree && echo \"amazing output: $1 $2\" && echo PYTHONPATH=$PYTHONPATH && python foo.py");
     fileWriter.close();
+    
     System.out.println(customShellScript.getAbsolutePath());
     String[] args = {
         "--jar",
@@ -66,11 +68,13 @@ public class TestYarnTF extends TestCluster {
         "--container_vcores",
         "1",
         "--main",
-        customShellScript.getAbsolutePath(),
+        "examples/foo.py",
         "--shell_args",
         "hello",
         "--shell_args",
-        "world"
+        "world",
+        "--py_files",
+        "examples/bar.py,examples/baz.zip"
     };
     
     LOG.info("Initializing DS Client");

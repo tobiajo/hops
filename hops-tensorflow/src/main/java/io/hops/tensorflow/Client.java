@@ -73,6 +73,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -201,6 +202,7 @@ public class Client {
   // Added for YarnTF
   public static final String AM_JAR_PATH = "AppMaster.jar";
   public static final String DIST_CACHE_PATH = "distCacheList.ser";
+  public static final String LOCALIZED_PYTHON_DIR = "__pyfiles__";
   public static final String YARNTF_STAGING = ".YarnTF";
   private CommandLine cliParser;
   
@@ -255,7 +257,6 @@ public class Client {
         "or --shell_script");
     opts.addOption("shell_script", true, "Location of the shell script to be " +
         "executed. Can only specify either --shell_command or --shell_script");
-    opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
     opts.addOption("shell_cmd_priority", true, "Priority for the shell command containers");
     opts.addOption("log_properties", true, "log4j.properties file");
     opts.addOption("keep_containers_across_application_attempts", false,
@@ -294,6 +295,7 @@ public class Client {
     opts.addOption("container_memory", true, "Amount of memory in MB to be requested to run the shell command");
     opts.addOption("container_vcores", true, "Amount of virtual cores to be requested to run the shell command");
     opts.addOption("num_containers", true, "No. of containers on which the shell command needs to be executed");
+    opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
     
     opts.addOption(MAIN, true, "Your application's main Python file.");
     opts.addOption(ARG, true, "Argument to be passed to your application's main class.\n" +
@@ -775,7 +777,7 @@ public class Client {
     
     // YarnTF take over
   
-    addResource(fs, appId, cliParser.getOptionValue(JAR), null, AM_JAR_PATH, null, localResources);
+    addResource(fs, appId, cliParser.getOptionValue(JAR), null, AM_JAR_PATH, null, localResources, null);
     
     DistributedCacheList dcl = populateDistributedCache(fs, appId);
     
@@ -801,13 +803,27 @@ public class Client {
     DistributedCacheList distCacheList = new DistributedCacheList();
     
     if (cliParser.hasOption(MAIN)) {
-      addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCacheList, null);
+      addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCacheList, null, null);
     }
+  
+    StringBuilder pythonPath = new StringBuilder(LOCALIZED_PYTHON_DIR);
+    if (cliParser.hasOption(PY_FILES)) {
+      String[] pyFiles = cliParser.getOptionValue(PY_FILES).split(",");
+      for (String file : pyFiles) {
+        if (file.endsWith(".py")) {
+          addResource(fs, appId, file, LOCALIZED_PYTHON_DIR, null, distCacheList, null, null);
+        } else {
+          addResource(fs, appId, file, null, null, distCacheList, null, pythonPath);
+        }
+      }
+    }
+    shellEnv.put("PYTHONPATH", pythonPath.toString());
+    
     return distCacheList;
   }
   
   private void addResource(FileSystem fs, ApplicationId appId, String srcPath, String dstDir, String dstName,
-      DistributedCacheList distCache, Map<String, LocalResource> localResources) throws
+      DistributedCacheList distCache, Map<String, LocalResource> localResources, StringBuilder pythonPath) throws
       IOException {
     Path src = new Path(srcPath);
     
@@ -838,6 +854,10 @@ public class Client {
           dstStatus.getLen(),
           dstStatus.getModificationTime());
       localResources.put(dstPath, resource);
+    }
+    
+    if (pythonPath != null) {
+      pythonPath.append(File.pathSeparator).append(dstPath);
     }
   }
   
