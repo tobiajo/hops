@@ -21,10 +21,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,5 +96,58 @@ public class TestYarnTF extends TestCluster {
     Thread.sleep(5000);
     Assert.assertFalse(TestUtils.dumpAllRemoteContainersLogs(yarnCluster, appId));
     Assert.assertTrue(TestUtils.dumpAllAggregatedContainersLogs(yarnCluster, appId));
+  }
+  
+  @Test(timeout=90000)
+  public void testCreateClusterSpec() throws Exception {
+    String[] args = {
+        "--jar",
+        APPMASTER_JAR,
+        "--num_containers",
+        "5",
+        "--shell_command",
+        "python create_cluster_spec.py",
+        "--master_memory",
+        "256",
+        "--master_vcores",
+        "1",
+        "--container_memory",
+        "256",
+        "--container_vcores",
+        "1",
+        "--main",
+        "examples/create_cluster_spec.py"
+    };
+    
+    LOG.info("Initializing DS Client");
+    final Client client = new Client(new Configuration(yarnCluster.getConfig()));
+    boolean initSuccess = client.init(args);
+    Assert.assertTrue(initSuccess);
+    LOG.info("Running DS Client");
+    final ApplicationId appId = client.submitApplication();
+    
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          Thread.sleep(30000);
+          client.forceKillApplication(appId);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } catch (YarnException e) {
+          e.printStackTrace();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+        LOG.info("Kill application");
+      }
+    }).start();
+    
+    boolean result = client.monitorApplication(appId);
+    LOG.info("Client run completed. Result=" + result);
+  
+    TestUtils.dumpAllRemoteContainersLogs(yarnCluster, appId);
+    Thread.sleep(5000);
+    TestUtils.dumpAllAggregatedContainersLogs(yarnCluster, appId);
   }
 }
