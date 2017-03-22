@@ -22,10 +22,12 @@ import org.apache.commons.cli.Options;
 public class ApplicationMasterArguments extends CommonArguments {
   
   public static final String APP_ATTEMPT_ID = "app_attempt_id";
+  public static final String MAIN_RELATIVE = "main_relative";
   
   public static final Options createOptions() {
     Options opts = CommonArguments.createOptions();
     opts.addOption(APP_ATTEMPT_ID, true, "App Attempt ID. Not to be used unless for testing purposes");
+    opts.addOption(MAIN_RELATIVE, true, "Your application's main Python file. Relative path for worker or ps");
     return opts;
   }
 }

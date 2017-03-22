@@ -21,7 +21,6 @@ import org.apache.commons.cli.Options;
 
 public class CommonArguments {
   
-  public static final String MAIN_RELATIVE = "main_relative";
   public static final String WORKERS = "workers";
   public static final String PSES = "pses";
   public static final String ENV = "env";
@@ -35,7 +34,6 @@ public class CommonArguments {
   
   protected static Options createOptions() {
     Options opts = new Options();
-    opts.addOption(MAIN_RELATIVE, true, "Your application's main Python file. Relative path for worker or ps");
     opts.addOption(WORKERS, true, "Number of workers");
     opts.addOption(PSES, true, "Number of parameter servers");
     opts.addOption(ENV, true, "Environment for Python application. Specified as env_key=env_val pairs");

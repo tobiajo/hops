@@ -94,7 +94,6 @@ import static io.hops.tensorflow.ClientArguments.HELP;
 import static io.hops.tensorflow.ClientArguments.KEEP_CONTAINERS_ACROSS_APPLICATION_ATTEMPTS;
 import static io.hops.tensorflow.ClientArguments.LOG_PROPERTIES;
 import static io.hops.tensorflow.ClientArguments.MAIN;
-import static io.hops.tensorflow.ClientArguments.MAIN_RELATIVE;
 import static io.hops.tensorflow.ClientArguments.MEMORY;
 import static io.hops.tensorflow.ClientArguments.MODIFY_ACLS;
 import static io.hops.tensorflow.ClientArguments.NAME;
@@ -177,8 +176,6 @@ public class Client {
   
   // Command line options
   private Options opts;
-  
-  private static final String APP_MASTER_JAR_PATH = "AppMaster.jar";
   
   private CommandLine cliParser;
   private String mainRelativePath; // relative for worker or ps
@@ -498,7 +495,7 @@ public class Client {
     vargs.add(newArg(VCORES, String.valueOf(vcores)));
     vargs.add(newArg(PRIORITY, String.valueOf(priority)));
     
-    vargs.add(newArg(MAIN_RELATIVE, mainRelativePath));
+    vargs.add(newArg(ApplicationMasterArguments.MAIN_RELATIVE, mainRelativePath));
     vargs.add(forwardArgument(WORKERS));
     vargs.add(forwardArgument(PSES));
     
@@ -649,19 +646,20 @@ public class Client {
     LOG.info("Copy App Master jar from local filesystem and add to local environment");
     // Copy the application master jar to the filesystem
     // Create a local resource to point to the destination jar path
-    addToLocalResources(fs, appMasterJar, APP_MASTER_JAR_PATH, appId.toString(), localResources, null);
-    
+    // addToLocalResources(fs, appMasterJar, Constants.AM_JAR_PATH, appId.toString(), localResources, null);
+    addResource(fs, appId, appMasterJar, null, Constants.AM_JAR_PATH, null, localResources, null);
+  
+  
     // Set the log4j properties if needed
     if (!log4jPropFile.isEmpty()) {
-      addToLocalResources(fs, log4jPropFile, Constants.LOG4J_PATH, appId.toString(), localResources, null);
+      // addToLocalResources(fs, log4jPropFile, Constants.LOG4J_PATH, appId.toString(), localResources, null);
+      addResource(fs, appId, log4jPropFile, null, Constants.LOG4J_PATH, null, localResources, null);
     }
     
     if (arguments.length > 0) {
       addToLocalResources(fs, null, Constants.ARGS_PATH, appId.toString(), localResources,
           StringUtils.join(arguments, " "));
     }
-    
-    addResource(fs, appId, cliParser.getOptionValue(AM_JAR), null, Constants.AM_JAR_PATH, null, localResources, null);
     
     DistributedCacheList dcl = populateDistributedCache(fs, appId);
     
