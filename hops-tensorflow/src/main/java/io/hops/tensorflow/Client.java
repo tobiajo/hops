@@ -496,6 +496,7 @@ public class Client {
     vargs.add(newArg(PRIORITY, String.valueOf(priority)));
     
     vargs.add(newArg(ApplicationMasterArguments.MAIN_RELATIVE, mainRelativePath));
+    vargs.add(newArg(ARGS, StringUtils.join(arguments, " ")));
     vargs.add(forwardArgument(WORKERS));
     vargs.add(forwardArgument(PSES));
     
@@ -654,11 +655,6 @@ public class Client {
     if (!log4jPropFile.isEmpty()) {
       // addToLocalResources(fs, log4jPropFile, Constants.LOG4J_PATH, appId.toString(), localResources, null);
       addResource(fs, appId, log4jPropFile, null, Constants.LOG4J_PATH, null, localResources, null);
-    }
-    
-    if (arguments.length > 0) {
-      addToLocalResources(fs, null, Constants.ARGS_PATH, appId.toString(), localResources,
-          StringUtils.join(arguments, " "));
     }
     
     DistributedCacheList dcl = populateDistributedCache(fs, appId);

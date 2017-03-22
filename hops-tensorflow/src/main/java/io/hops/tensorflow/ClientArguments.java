@@ -24,7 +24,6 @@ public class ClientArguments extends CommonArguments {
   
   public static final String NAME = "appname";
   public static final String MAIN = "main";
-  public static final String ARGS = "args";
   public static final String FILES = "files";
   
   public static final String TENSORBOARD = "tensorboard"; // TODO: Implement usage
@@ -52,8 +51,6 @@ public class ClientArguments extends CommonArguments {
     Options opts = CommonArguments.createOptions();
     opts.addOption(NAME, true, "A name of your application.");
     opts.addOption(MAIN, true, "Your application's main Python file.");
-    opts.addOption(ARGS, true, "Command line args for the application. Multiple args can be separated by empty space.");
-    opts.getOption(ARGS).setArgs(Option.UNLIMITED_VALUES);
     opts.addOption(FILES, true,
         "Comma-separated list of .zip, .egg, or .py files to place on the PYTHONPATH for Python apps.");
     
