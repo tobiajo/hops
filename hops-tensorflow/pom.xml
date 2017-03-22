@@ -16,11 +16,10 @@
     <guava.version>20.0</guava.version>
     <protobuf.version>3.1.0</protobuf.version>
     <grpc.version>1.1.2</grpc.version>
-    <slf4j.version>1.7.10</slf4j.version>
   </properties>
 
   <dependencies>
-    <!-- provided -->
+    <!-- hadoop -->
     <dependency>
       <groupId>io.hops</groupId>
       <artifactId>hadoop-common</artifactId>
@@ -30,29 +29,6 @@
       <groupId>io.hops</groupId>
       <artifactId>hadoop-yarn-client</artifactId>
       <scope>provided</scope>
-    </dependency>
-    <!--<dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang</artifactId>
-      <scope>provided</scope>
-    </dependency>-->
-    <!-- test -->
-    <dependency>
-      <groupId>io.hops</groupId>
-      <artifactId>hadoop-common</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.hops</groupId>
-      <artifactId>hadoop-yarn-server-tests</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
     </dependency>
     <!-- grpc -->
     <dependency>
@@ -80,11 +56,24 @@
       <artifactId>grpc-stub</artifactId>
       <version>${grpc.version}</version>
     </dependency>
-    <!--<dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-nop</artifactId>
-      <version>${slf4j.version}</version>
-    </dependency>-->
+    <!-- test -->
+    <dependency>
+      <groupId>io.hops</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.hops</groupId>
+      <artifactId>hadoop-yarn-server-tests</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -101,13 +90,9 @@
         <artifactId>protobuf-maven-plugin</artifactId>
         <version>0.5.0</version>
         <configuration>
-          <protocArtifact>
-            com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}
-          </protocArtifact>
+          <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
           <pluginId>grpc-java</pluginId>
-          <pluginArtifact>
-            io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}
-          </pluginArtifact>
+          <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
         </configuration>
         <executions>
           <execution>
