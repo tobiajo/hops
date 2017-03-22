@@ -21,7 +21,7 @@ public class Constants {
   
   public static final String AM_JAR_PATH = "AppMaster.jar";
   public static final String ARGS_PATH = "appArgs";
-  public static final String DIST_CACHE_PATH = "distCacheList.ser";
+  public static final String DIST_CACHE_PATH = "distCache.ser";
   public static final String LOCALIZED_PYTHON_DIR = "__pyfiles__";
   public static final String LOG4J_PATH = "log4j.properties";
   public static final String YARNTF_STAGING = ".yarntfStaging";
