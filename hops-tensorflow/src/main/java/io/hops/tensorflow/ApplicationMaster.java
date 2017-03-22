@@ -149,7 +149,7 @@ public class ApplicationMaster {
   // TODO
   // For status update for clients - yet to be implemented
   // Hostname of the container
-  private String appMasterHostname = "";
+  private String appMasterHostname;
   // Port on which the app master listens for status updates from clients
   private int appMasterRpcPort = -1;
   // Tracking url to which app master publishes info for clients to monitor
@@ -161,11 +161,11 @@ public class ApplicationMaster {
   // App Master configuration
   // No. of containers to run YarnTF on
   @VisibleForTesting
-  protected int numTotalContainers = 2;
+  protected int numTotalContainers;
   // Memory to request for the container on which the application will run
-  private int containerMemory = 10;
+  private int containerMemory;
   // VirtualCores to request for the container on which the application will run
-  private int containerVirtualCores = 1;
+  private int containerVirtualCores;
   // Priority of the request
   private int requestPriority;
   
@@ -483,8 +483,7 @@ public class ApplicationMaster {
     // This will start heartbeating to the RM
     appMasterHostname = NetUtils.getHostname();
     RegisterApplicationMasterResponse response = amRMClient
-        .registerApplicationMaster(appMasterHostname, appMasterRpcPort,
-            appMasterTrackingUrl);
+        .registerApplicationMaster(appMasterHostname, appMasterRpcPort, appMasterTrackingUrl);
     // Dump out information about cluster capability as seen by the
     // resource manager
     int maxMem = response.getMaximumResourceCapability().getMemory();
@@ -514,8 +513,7 @@ public class ApplicationMaster {
         + " previous attempts' running containers on AM registration.");
     numAllocatedContainers.addAndGet(previousAMRunningContainers.size());
     
-    int numTotalContainersToRequest =
-        numTotalContainers - previousAMRunningContainers.size();
+    int numTotalContainersToRequest = numTotalContainers - previousAMRunningContainers.size();
     // Setup ask for containers from RM
     // Send request for containers to RM
     // Until we get our fully allocated quota, we keep on polling RM for
