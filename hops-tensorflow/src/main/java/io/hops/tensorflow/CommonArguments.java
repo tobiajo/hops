@@ -17,10 +17,12 @@
  */
 package io.hops.tensorflow;
 
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class CommonArguments {
   
+  public static final String ARGS = "args";
   public static final String WORKERS = "workers";
   public static final String PSES = "pses";
   public static final String ENV = "env";
@@ -34,6 +36,9 @@ public class CommonArguments {
   
   protected static Options createOptions() {
     Options opts = new Options();
+    
+    opts.addOption(ARGS, true, "Command line args for the application. Multiple args can be separated by empty space.");
+    opts.getOption(ARGS).setArgs(Option.UNLIMITED_VALUES);
     opts.addOption(WORKERS, true, "Number of workers");
     opts.addOption(PSES, true, "Number of parameter servers");
     opts.addOption(ENV, true, "Environment for Python application. Specified as env_key=env_val pairs");

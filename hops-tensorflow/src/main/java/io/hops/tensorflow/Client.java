@@ -496,6 +496,7 @@ public class Client {
     vargs.add(newArg(PRIORITY, String.valueOf(priority)));
     
     vargs.add(newArg(ApplicationMasterArguments.MAIN_RELATIVE, mainRelativePath));
+    vargs.add(newArg(ARGS, StringUtils.join(arguments, " ")));
     vargs.add(forwardArgument(WORKERS));
     vargs.add(forwardArgument(PSES));
     
@@ -646,19 +647,11 @@ public class Client {
     LOG.info("Copy App Master jar from local filesystem and add to local environment");
     // Copy the application master jar to the filesystem
     // Create a local resource to point to the destination jar path
-    // addToLocalResources(fs, appMasterJar, Constants.AM_JAR_PATH, appId.toString(), localResources, null);
     addResource(fs, appId, appMasterJar, null, Constants.AM_JAR_PATH, null, localResources, null);
-  
-  
+    
     // Set the log4j properties if needed
     if (!log4jPropFile.isEmpty()) {
-      // addToLocalResources(fs, log4jPropFile, Constants.LOG4J_PATH, appId.toString(), localResources, null);
       addResource(fs, appId, log4jPropFile, null, Constants.LOG4J_PATH, null, localResources, null);
-    }
-    
-    if (arguments.length > 0) {
-      addToLocalResources(fs, null, Constants.ARGS_PATH, appId.toString(), localResources,
-          StringUtils.join(arguments, " "));
     }
     
     DistributedCacheList dcl = populateDistributedCache(fs, appId);
@@ -835,32 +828,6 @@ public class Client {
     // Response can be ignored as it is non-null on success or 
     // throws an exception in case of failures
     yarnClient.killApplication(appId);
-  }
-  
-  private void addToLocalResources(FileSystem fs, String fileSrcPath,
-      String fileDstPath, String appId, Map<String, LocalResource> localResources,
-      String resources) throws IOException {
-    String suffix = appName + "/" + appId + "/" + fileDstPath;
-    Path dst =
-        new Path(fs.getHomeDirectory(), suffix);
-    if (fileSrcPath == null) {
-      FSDataOutputStream ostream = null;
-      try {
-        ostream = FileSystem.create(fs, dst, new FsPermission((short) 0710));
-        ostream.writeUTF(resources);
-      } finally {
-        IOUtils.closeQuietly(ostream);
-      }
-    } else {
-      fs.copyFromLocalFile(new Path(fileSrcPath), dst);
-    }
-    FileStatus scFileStatus = fs.getFileStatus(dst);
-    LocalResource scRsrc =
-        LocalResource.newInstance(
-            ConverterUtils.getYarnUrlFromURI(dst.toUri()),
-            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION,
-            scFileStatus.getLen(), scFileStatus.getModificationTime());
-    localResources.put(fileDstPath, scRsrc);
   }
   
   private void prepareTimelineDomain() {

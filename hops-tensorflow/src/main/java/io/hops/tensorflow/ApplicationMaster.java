@@ -24,6 +24,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -102,6 +103,7 @@ import static io.hops.tensorflow.ApplicationMasterArguments.PSES;
 import static io.hops.tensorflow.ApplicationMasterArguments.VCORES;
 import static io.hops.tensorflow.ApplicationMasterArguments.WORKERS;
 import static io.hops.tensorflow.ApplicationMasterArguments.createOptions;
+import static io.hops.tensorflow.CommonArguments.ARGS;
 import static io.hops.tensorflow.Constants.LOG4J_PATH;
 
 @InterfaceAudience.Public
@@ -183,7 +185,7 @@ public class ApplicationMaster {
   @VisibleForTesting
   protected AtomicInteger numRequestedContainers = new AtomicInteger();
   
-  private String arguments = "";
+  private String[] arguments = new String[]{};
   
   // Env variables to be setup for the YarnTF application
   private Map<String, String> environment = new HashMap<>();
@@ -346,10 +348,9 @@ public class ApplicationMaster {
         + appAttemptID.getApplicationId().getClusterTimestamp()
         + ", attemptId=" + appAttemptID.getAttemptId());
     
-    if (fileExist(Constants.ARGS_PATH)) {
-      arguments = readContent(Constants.ARGS_PATH);
+    if (cliParser.hasOption(ARGS)) {
+      arguments = cliParser.getOptionValues(ARGS);
     }
-    
     
     if (cliParser.hasOption(ENV)) {
       String shellEnvs[] = cliParser.getOptionValues(ENV);
@@ -408,12 +409,19 @@ public class ApplicationMaster {
     LOG.info("Starting ApplicationMaster. " +
         "Workers: " + numWorkers + ", Parameter servers: " + numPses);
     
-    FileInputStream fin = new FileInputStream(Constants.DIST_CACHE_PATH);
-    ObjectInputStream ois = new ObjectInputStream(fin);
+    FileInputStream fin = null;
+    ObjectInputStream ois = null;
     try {
-      distCacheList = (DistributedCacheList) ois.readObject();
-    } catch (ClassNotFoundException e) {
-      e.printStackTrace();
+      fin = new FileInputStream(Constants.DIST_CACHE_PATH);
+      ois = new ObjectInputStream(fin);
+      try {
+        distCacheList = (DistributedCacheList) ois.readObject();
+      } catch (ClassNotFoundException e) {
+        e.printStackTrace();
+      }
+    } finally {
+      org.apache.commons.io.IOUtils.closeQuietly(ois);
+      org.apache.commons.io.IOUtils.closeQuietly(fin);
     }
     
     LOG.info("Loaded distribute cache list: " + distCacheList.toString());
@@ -435,8 +443,7 @@ public class ApplicationMaster {
     
     // Note: Credentials, Token, UserGroupInformation, DataOutputBuffer class
     // are marked as LimitedPrivate
-    Credentials credentials =
-        UserGroupInformation.getCurrentUser().getCredentials();
+    Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
     DataOutputBuffer dob = new DataOutputBuffer();
     credentials.writeTokenStorageToStream(dob);
     // Now remove the AM->RM token so that containers cannot access it.
@@ -596,8 +603,7 @@ public class ApplicationMaster {
     FinalApplicationStatus appStatus;
     String appMessage = null;
     boolean success = true;
-    if (numFailedContainers.get() == 0 &&
-        numCompletedContainers.get() == numTotalContainers) {
+    if (numFailedContainers.get() == 0 && numCompletedContainers.get() == numTotalContainers) {
       appStatus = FinalApplicationStatus.SUCCEEDED;
     } else {
       appStatus = FinalApplicationStatus.FAILED;
@@ -898,7 +904,7 @@ public class ApplicationMaster {
       vargs.add("python " + mainRelative);
       
       // Set args for the Python application if any
-      vargs.add(arguments);
+      vargs.add(StringUtils.join(arguments, " "));
       
       // Add log redirect params
       vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
