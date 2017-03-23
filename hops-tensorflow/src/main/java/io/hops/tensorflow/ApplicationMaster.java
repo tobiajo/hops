@@ -161,7 +161,7 @@ public class ApplicationMaster {
   private int numPses;
   
   // App Master configuration
-  // No. of containers to run YarnTF on
+  // No. of containers to run yarnTF on
   @VisibleForTesting
   protected int numTotalContainers;
   // Memory to request for the container on which the application will run
@@ -187,7 +187,7 @@ public class ApplicationMaster {
   
   private String[] arguments = new String[]{};
   
-  // Env variables to be setup for the YarnTF application
+  // Env variables to be setup for the yarnTF application
   private Map<String, String> environment = new HashMap<>();
   
   // Timeline domain ID
@@ -204,7 +204,7 @@ public class ApplicationMaster {
   @VisibleForTesting
   TimelineClient timelineClient;
   
-  // YarnTF stuff
+  // yarnTF stuff
   private CommandLine cliParser;
   private DistributedCacheList distCacheList;
   private String mainRelative;
@@ -309,6 +309,15 @@ public class ApplicationMaster {
     if (cliParser.hasOption(DEBUG)) {
       dumpOutDebugInfo();
     }
+  
+    if (!cliParser.hasOption(MAIN_RELATIVE)) {
+      throw new IllegalArgumentException("No main application file specified");
+    }
+    mainRelative = cliParser.getOptionValue(MAIN_RELATIVE);
+  
+    if (cliParser.hasOption(ARGS)) {
+      arguments = cliParser.getOptionValues(ARGS);
+    }
     
     Map<String, String> envs = System.getenv();
     
@@ -348,10 +357,6 @@ public class ApplicationMaster {
         + appAttemptID.getApplicationId().getClusterTimestamp()
         + ", attemptId=" + appAttemptID.getAttemptId());
     
-    if (cliParser.hasOption(ARGS)) {
-      arguments = cliParser.getOptionValues(ARGS);
-    }
-    
     if (cliParser.hasOption(ENV)) {
       String shellEnvs[] = cliParser.getOptionValues(ENV);
       for (String env : shellEnvs) {
@@ -384,7 +389,6 @@ public class ApplicationMaster {
       throw new IllegalArgumentException("Need at least 1 worker and 1 parameter server");
     }
     requestPriority = Integer.parseInt(cliParser.getOptionValue(PRIORITY, "0"));
-    mainRelative = cliParser.getOptionValue(MAIN_RELATIVE);
     return true;
   }
   
@@ -923,7 +927,7 @@ public class ApplicationMaster {
       // command and token for constructor.
       
       // Note for tokens: Set up tokens for the container too. Today, for normal
-      // Python applications, the container in YarnTF doesn't need any
+      // Python applications, the container in yarnTF doesn't need any
       // tokens. We are populating them mainly for NodeManagers to be able to
       // download anyfiles in the distributed file-system. The tokens are
       // otherwise also useful in cases, for e.g., when one is running a

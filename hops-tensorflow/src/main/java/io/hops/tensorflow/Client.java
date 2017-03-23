@@ -178,6 +178,7 @@ public class Client {
   private Options opts;
   
   private CommandLine cliParser;
+  private String mainPath;
   private String mainRelativePath; // relative for worker or ps
   
   /**
@@ -297,8 +298,12 @@ public class Client {
     if (!cliParser.hasOption(AM_JAR)) {
       throw new IllegalArgumentException("No jar file specified for application master");
     }
-    
     appMasterJar = cliParser.getOptionValue(AM_JAR);
+    
+    if (!cliParser.hasOption(MAIN)) {
+      throw new IllegalArgumentException("No main application file specified");
+    }
+    mainPath = cliParser.getOptionValue(MAIN);
     
     if (cliParser.hasOption(ARGS)) {
       arguments = cliParser.getOptionValues(ARGS);
@@ -326,7 +331,6 @@ public class Client {
     vcores = Integer.parseInt(cliParser.getOptionValue(VCORES, "1"));
     int numWorkers = Integer.parseInt(cliParser.getOptionValue(WORKERS, "1"));
     int numPses = Integer.parseInt(cliParser.getOptionValue(PSES, "1"));
-    
     
     if (memory < 0 || vcores < 0 || numWorkers < 1 || numPses < 1) {
       throw new IllegalArgumentException("Invalid no. of containers or container memory/vcores specified,"
@@ -681,7 +685,7 @@ public class Client {
   private DistributedCacheList populateDistributedCache(FileSystem fs, ApplicationId appId) throws IOException {
     DistributedCacheList distCacheList = new DistributedCacheList();
     
-    mainRelativePath = addResource(fs, appId, cliParser.getOptionValue(MAIN), null, null, distCacheList, null, null);
+    mainRelativePath = addResource(fs, appId, mainPath, null, null, distCacheList, null, null);
     
     StringBuilder pythonPath = new StringBuilder(Constants.LOCALIZED_PYTHON_DIR);
     if (cliParser.hasOption(FILES)) {
