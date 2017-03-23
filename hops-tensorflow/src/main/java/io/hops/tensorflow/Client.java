@@ -279,7 +279,7 @@ public class Client {
       keepContainers = true;
     }
     
-    appName = cliParser.getOptionValue(NAME, "YarnTF");
+    appName = cliParser.getOptionValue(NAME, "yarnTF");
     amPriority = Integer.parseInt(cliParser.getOptionValue(AM_PRIORITY, "0"));
     amQueue = cliParser.getOptionValue(QUEUE, "default");
     amMemory = Integer.parseInt(cliParser.getOptionValue(AM_MEMORY, "10"));

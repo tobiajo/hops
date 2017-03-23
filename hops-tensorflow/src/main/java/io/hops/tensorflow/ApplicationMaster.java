@@ -114,7 +114,7 @@ public class ApplicationMaster {
   
   @VisibleForTesting
   @Private
-  public enum YarnTfEvent {
+  public enum YarnTFEvent {
     YARNTF_APP_ATTEMPT_START,
     YARNTF_APP_ATTEMPT_END,
     YARNTF_CONTAINER_START,
@@ -123,7 +123,7 @@ public class ApplicationMaster {
   
   @VisibleForTesting
   @Private
-  public enum YarnTfEntity {
+  public enum YarnTFEntity {
     YARNTF_APP_ATTEMPT,
     YARNTF_CONTAINER
   }
@@ -477,7 +477,7 @@ public class ApplicationMaster {
     startTimelineClient(conf);
     if (timelineClient != null) {
       publishApplicationAttemptEvent(timelineClient, appAttemptID.toString(),
-          YarnTfEvent.YARNTF_APP_ATTEMPT_START, domainId, appSubmitterUgi);
+          YarnTFEvent.YARNTF_APP_ATTEMPT_START, domainId, appSubmitterUgi);
     }
     
     // Setup local RPC Server to accept status requests directly from clients
@@ -577,7 +577,7 @@ public class ApplicationMaster {
     
     if (timelineClient != null) {
       publishApplicationAttemptEvent(timelineClient, appAttemptID.toString(),
-          YarnTfEvent.YARNTF_APP_ATTEMPT_END, domainId, appSubmitterUgi);
+          YarnTFEvent.YARNTF_APP_ATTEMPT_END, domainId, appSubmitterUgi);
     }
     
     // Join all launched threads
@@ -714,7 +714,7 @@ public class ApplicationMaster {
       int worker = -1;
       int ps = -1;
       for (Container allocatedContainer : allAllocatedContainers.values()) {
-        LOG.info("Launching YarnTF application on a new container."
+        LOG.info("Launching yarnTF application on a new container."
             + ", containerId=" + allocatedContainer.getId()
             + ", containerNode=" + allocatedContainer.getNodeId().getHost()
             + ":" + allocatedContainer.getNodeId().getPort()
@@ -945,7 +945,7 @@ public class ApplicationMaster {
    */
   private ContainerRequest setupContainerAskForRM() {
     // setup requirements for hosts
-    // using * as any host will do for the YarnTF app
+    // using * as any host will do for the yarnTF app
     // set the priority for the request
     // TODO - what is the range for priority? how to decide?
     Priority pri = Priority.newInstance(requestPriority);
@@ -980,12 +980,12 @@ public class ApplicationMaster {
       UserGroupInformation ugi) {
     final TimelineEntity entity = new TimelineEntity();
     entity.setEntityId(container.getId().toString());
-    entity.setEntityType(YarnTfEntity.YARNTF_CONTAINER.toString());
+    entity.setEntityType(YarnTFEntity.YARNTF_CONTAINER.toString());
     entity.setDomainId(domainId);
     entity.addPrimaryFilter("user", ugi.getShortUserName());
     TimelineEvent event = new TimelineEvent();
     event.setTimestamp(System.currentTimeMillis());
-    event.setEventType(YarnTfEvent.YARNTF_CONTAINER_START.toString());
+    event.setEventType(YarnTFEvent.YARNTF_CONTAINER_START.toString());
     event.addEventInfo("Node", container.getNodeId().toString());
     event.addEventInfo("Resources", container.getResource().toString());
     entity.addEvent(event);
@@ -1009,12 +1009,12 @@ public class ApplicationMaster {
       String domainId, UserGroupInformation ugi) {
     final TimelineEntity entity = new TimelineEntity();
     entity.setEntityId(container.getContainerId().toString());
-    entity.setEntityType(YarnTfEntity.YARNTF_CONTAINER.toString());
+    entity.setEntityType(YarnTFEntity.YARNTF_CONTAINER.toString());
     entity.setDomainId(domainId);
     entity.addPrimaryFilter("user", ugi.getShortUserName());
     TimelineEvent event = new TimelineEvent();
     event.setTimestamp(System.currentTimeMillis());
-    event.setEventType(YarnTfEvent.YARNTF_CONTAINER_END.toString());
+    event.setEventType(YarnTFEvent.YARNTF_CONTAINER_END.toString());
     event.addEventInfo("State", container.getState().name());
     event.addEventInfo("Exit Status", container.getExitStatus());
     entity.addEvent(event);
@@ -1028,10 +1028,10 @@ public class ApplicationMaster {
   
   private static void publishApplicationAttemptEvent(
       final TimelineClient timelineClient, String appAttemptId,
-      YarnTfEvent appEvent, String domainId, UserGroupInformation ugi) {
+      YarnTFEvent appEvent, String domainId, UserGroupInformation ugi) {
     final TimelineEntity entity = new TimelineEntity();
     entity.setEntityId(appAttemptId);
-    entity.setEntityType(YarnTfEntity.YARNTF_APP_ATTEMPT.toString());
+    entity.setEntityType(YarnTFEntity.YARNTF_APP_ATTEMPT.toString());
     entity.setDomainId(domainId);
     entity.addPrimaryFilter("user", ugi.getShortUserName());
     TimelineEvent event = new TimelineEvent();
@@ -1042,7 +1042,7 @@ public class ApplicationMaster {
       timelineClient.putEntities(entity);
     } catch (YarnException | IOException e) {
       LOG.error("App Attempt "
-          + (appEvent.equals(YarnTfEvent.YARNTF_APP_ATTEMPT_START) ? "start" : "end")
+          + (appEvent.equals(YarnTFEvent.YARNTF_APP_ATTEMPT_START) ? "start" : "end")
           + " event could not be published for "
           + appAttemptId.toString(), e);
     }

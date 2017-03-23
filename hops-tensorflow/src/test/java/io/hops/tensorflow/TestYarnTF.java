@@ -55,11 +55,11 @@ public class TestYarnTF extends TestCluster {
         "--" + ARGS, "hello world"
     };
     
-    LOG.info("Initializing YarnTF Client");
+    LOG.info("Initializing yarnTF Client");
     final Client client = new Client(new Configuration(yarnCluster.getConfig()));
     boolean initSuccess = client.init(args);
     Assert.assertTrue(initSuccess);
-    LOG.info("Running YarnTF Client");
+    LOG.info("Running yarnTF Client");
     final ApplicationId appId = client.submitApplication();
     
     new Thread(new Runnable() {
